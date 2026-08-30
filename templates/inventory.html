@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block mobile_title %}Inventory{% endblock %}
+{% block content %}
+  <section class="page-head">
+    <div><div class="eyebrow">OPERATIONS</div><h1>Inventory</h1><p class="subtitle">Keep your bean stock accurate. Orders deduct automatically.</p></div>
+    <a class="button secondary" href="{{ url_for('new_bean') }}">＋ New bean type</a>
+  </section>
+
+  {% if beans %}
+  <div class="content-grid inventory-layout">
+    <section class="panel form-panel">
+      <div class="panel-head"><div><div class="eyebrow">RESTOCK</div><h2>Add stock</h2><p class="panel-copy">Increase stock when a new shipment arrives.</p></div><div class="round-icon">＋</div></div>
+      <form class="stacked" method="POST">
+        <label for="bean_id">Bean</label>
+        <select id="bean_id" name="bean_id" required>
+          {% for bean in beans %}<option value="{{ bean.id }}">{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available</option>{% endfor %}
+        </select>
+        <div class="form-row"><div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div><div class="unit-hint">Unit follows the selected bean</div></div>
+        <label for="added_by">Added by <span>(optional)</span></label><input type="text" id="added_by" name="added_by" placeholder="Your name">
+        <label for="note">Note <span>(optional)</span></label><input type="text" id="note" name="note" placeholder="e.g. new shipment from roaster">
+        <button type="submit">Add stock <span>→</span></button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="eyebrow">CATALOG</div><h2>Bean stock</h2></div><span class="count-pill">{{ beans|length }} types</span></div>
+      <div class="stock-cards">
+        {% for bean in beans %}
+          <div class="stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
+            <div class="stock-card-top"><div class="bean-mark">{{ bean.name[:1]|upper }}</div><span class="badge {% if bean.current_stock <= 0 %}out{% elif bean.current_stock <= bean.low_stock_threshold %}low{% else %}ok{% endif %}">{% if bean.current_stock <= 0 %}Out of stock{% elif bean.current_stock <= bean.low_stock_threshold %}Low{% else %}Healthy{% endif %}</span></div>
+            <strong>{{ bean.name }}</strong>
+            <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
+            <div class="stock-meta">Warning at {{ "%.2f"|format(bean.low_stock_threshold) }} {{ bean.unit }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+  {% else %}
+    <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No beans in the catalog</strong><span>Create a bean type before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Create bean type</a></section>
+  {% endif %}
+{% endblock %}

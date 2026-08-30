@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+{% block mobile_title %}Orders{% endblock %}
+{% block content %}
+  <section class="page-head"><div><div class="eyebrow">SALES</div><h1>Orders</h1><p class="subtitle">Record an order and stock is deducted in the same step.</p></div></section>
+
+  {% if beans %}
+  <section class="panel form-panel order-form-panel">
+    <div class="panel-head"><div><div class="eyebrow">NEW ORDER</div><h2>Record an order</h2></div><div class="round-icon">↗</div></div>
+    <form class="order-form" method="POST">
+      <div><label for="customer_name">Customer name</label><input type="text" id="customer_name" name="customer_name" placeholder="e.g. Cafe Bloom" required></div>
+      <div><label for="bean_id">Bean</label><select id="bean_id" name="bean_id" required>{% for bean in beans %}<option value="{{ bean.id }}" {% if bean.current_stock <= 0 %}disabled{% endif %}>{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }}{% if bean.current_stock <= 0 %} — Out of stock{% endif %}</option>{% endfor %}</select></div>
+      <div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div>
+      <div><label for="delivery_date">Delivery date <span>(optional)</span></label><input type="date" id="delivery_date" name="delivery_date"></div>
+      <div class="wide"><label for="notes">Notes <span>(optional)</span></label><input type="text" id="notes" name="notes" placeholder="Any delivery or order notes"></div>
+      <div class="form-action"><button type="submit">Record order <span>→</span></button></div>
+    </form>
+  </section>
+  {% else %}<section class="panel empty-state compact"><strong>Add a bean first</strong><span>You need at least one bean in Inventory before recording orders.</span><a class="button" href="{{ url_for('new_bean') }}">Add bean</a></section>{% endif %}
+
+  <section class="panel">
+    <div class="panel-head"><div><div class="eyebrow">HISTORY</div><h2>Order history</h2></div><span class="count-pill">{{ orders|length }} orders</span></div>
+    {% if orders %}<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Bean</th><th>Quantity</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>{% for order in orders %}<tr><td><strong>{{ order.customer_name }}</strong></td><td>{{ order.bean_name }}</td><td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td><td><span class="badge {{ 'cancelled' if order.status == 'cancelled' else 'ok' }}">{{ 'Cancelled' if order.status == 'cancelled' else 'Fulfilled' }}</span></td><td class="muted-cell">{{ order.created_at.strftime("%d %b %Y · %H:%M") }}</td><td>{% if order.status != 'cancelled' %}<form method="POST" action="{{ url_for('cancel_order_route', order_id=order.id) }}" class="inline-form"><button type="submit" class="table-action">Cancel</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact"><div class="empty-icon">↗</div><strong>No orders recorded</strong><span>Your order history will show up here.</span></div>{% endif %}
+  </section>
+{% endblock %}

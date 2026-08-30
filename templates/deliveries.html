@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Deliveries{% endblock %}
+
+{% block content %}
+<h1>Deliveries</h1>
+
+{% if deliveries %}
+<table>
+    <thead>
+        <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Bean</th>
+            <th>Quantity</th>
+            <th>Delivery date</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in deliveries %}
+        <tr>
+            <td>#{{ order.id }}</td>
+            <td>{{ order.customer_name }}</td>
+            <td>{{ order.bean_name }}</td>
+            <td>{{ "%g"|format(order.quantity|float) }} {{ order.bean_unit }}</td>
+            <td>{{ order.delivery_date if order.delivery_date else "Not scheduled" }}</td>
+            <td>{{ order.status|replace("_", " ")|title }}</td>
+            <td>
+                {% if order.status == "pending_delivery" %}
+                <form method="post" action="{{ url_for('complete_delivery', order_id=order.id) }}">
+                    <button type="submit">Mark delivered</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No deliveries yet. Record an order to see it here.</p>
+{% endif %}
+{% endblock %}

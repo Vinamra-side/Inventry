@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#d94b9b">
+  <title>{% block title %}Dashboard{% endblock %} · SAIKO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('saiko-theme');
+      const theme = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.body.dataset.theme = theme;
+    }());
+  </script>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a href="{{ url_for('dashboard') }}" class="brand-lockup" aria-label="Saiko home">
+        <img src="{{ url_for('static', filename='saiko-logo-clean.png') }}" alt="SAIKO">
+        <span>COFFEE OPERATIONS</span>
+      </a>
+
+      <div class="side-section-label">Workspace</div>
+      <nav class="side-nav" aria-label="Primary navigation">
+        <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('inventory') }}" class="{{ 'active' if request.endpoint in ['inventory', 'new_bean'] }}">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Inventory</span>
+        </a>
+        <a href="{{ url_for('orders') }}" class="{{ 'active' if request.endpoint == 'orders' or request.endpoint == 'cancel_order_route' }}">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/><path d="M5 5v14h14"/></svg></span><span>Orders</span>
+        </a>
+        <a href="{{ url_for('deliveries') }}" class="{{ 'active' if request.endpoint in ['deliveries', 'complete_delivery'] }}">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 3v4M16 3v4M7 11h10M8 16l2 2 5-5"/></svg></span><span>Deliveries</span>
+        </a>
+        <a href="{{ url_for('insights') }}" class="{{ 'active' if request.endpoint == 'insights' }}">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-8M22 19H2"/><path d="m4 7 6-3 6 4 5-5"/></svg></span><span>Insights</span>
+        </a>
+        <a href="{{ url_for('stock_history') }}" class="{{ 'active' if request.endpoint == 'stock_history' }}">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span>Stock history</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="footer-brand-row"><div class="brand-hindi">सा·इ·को</div><button class="theme-toggle" type="button" aria-label="Toggle colour theme" title="Toggle colour theme" data-theme-toggle><span>☼</span><span class="visually-hidden" data-theme-label>Light mode</span></button></div>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <div class="workspace-actions">
+        <details class="profile-menu" data-profile-menu>
+          <summary class="user-shortcut {{ 'active' if request.endpoint in ['users','remove_user','admin_accounts','admin_account_toggle'] }}" aria-label="Open account menu" title="Account menu">
+            <span aria-hidden="true">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</span>
+          </summary>
+
+          <div class="account-menu" role="menu">
+            <div class="account-menu-head">
+              <div class="account-avatar">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</div>
+              <div class="account-identity">
+                <strong>{{ session.get('display_name', session.get('username','User')) }}</strong>
+                <span>@{{ session.get('username','') }}{% if session.get('role') %} · {{ session.get('role')|title }}{% endif %}</span>
+              </div>
+            </div>
+
+            {% if session.get('role') == 'admin' %}
+            <div class="account-menu-section">
+              <a href="{{ url_for('admin_accounts') }}" role="menuitem" class="{{ 'active' if request.endpoint in ['admin_accounts','admin_account_toggle'] }}">
+                <span class="account-menu-icon" aria-hidden="true">◎</span><span>Login accounts</span>
+              </a>
+              <a href="{{ url_for('users') }}" role="menuitem" class="{{ 'active' if request.endpoint in ['users','remove_user'] }}">
+                <span class="account-menu-icon" aria-hidden="true">♙</span><span>Licensed users</span>
+              </a>
+            </div>
+            {% endif %}
+
+            <div class="account-menu-section account-menu-bottom">
+              <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+                <button class="account-menu-logout" type="submit" role="menuitem">
+                  <span class="account-menu-icon" aria-hidden="true">↪</span><span>Logout</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </details>
+      </div>
+      <header class="mobile-topbar">
+        <a href="{{ url_for('dashboard') }}" class="mobile-brand">
+          <img src="{{ url_for('static', filename='saiko-logo-clean.png') }}" alt="SAIKO">
+        </a>
+        <span class="mobile-title">{% block mobile_title %}Workspace{% endblock %}</span>
+        <button class="mobile-theme-toggle" type="button" aria-label="Toggle colour theme" data-theme-toggle>◐</button>
+      </header>
+
+      <main class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}"><span class="flash-mark">{{ '✓' if category == 'success' else '!' }}</span>{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const buttons = document.querySelectorAll('[data-theme-toggle]');
+      const label = document.querySelector('[data-theme-label]');
+      function update() {
+        const dark = document.body.dataset.theme === 'dark';
+        label.textContent = dark ? 'Light mode' : 'Dark mode';
+        document.querySelector('.theme-toggle span').textContent = dark ? '☼' : '◐';
+        document.querySelector('.mobile-theme-toggle').textContent = dark ? '☼' : '◐';
+      }
+      buttons.forEach(function (button) { button.addEventListener('click', function () {
+          document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('saiko-theme', document.body.dataset.theme); update();
+      }); });
+      update();
+    }());
+  </script>
+  <script>
+    document.addEventListener('click', function (event) {
+      document.querySelectorAll('details.profile-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+      });
+    });
+  </script>
+</body>
+</html>

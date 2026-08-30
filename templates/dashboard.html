@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block mobile_title %}Dashboard{% endblock %}
+{% block content %}
+  <section class="page-head dashboard-head">
+    <div>
+      <div class="eyebrow">SAIKO INVENTORY</div>
+      <h1>Good day<span class="pink-dot">.</span></h1>
+      <p class="subtitle">A quick view of your stock and latest orders.</p>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-top"><span class="stat-icon pink">▦</span><span class="stat-caption">CATALOG</span></div>
+      <div class="value">{{ beans|length }}</div>
+      <div class="label">Bean types</div>
+    </div>
+    <div class="stat-card warning-card">
+      <div class="stat-top"><span class="stat-icon amber">!</span><span class="stat-caption">ATTENTION</span></div>
+      <div class="value">{{ low_stock_beans|length }}</div>
+      <div class="label">Low stock items</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><span class="stat-icon green">↗</span><span class="stat-caption">ACTIVITY</span></div>
+      <div class="value">{{ recent_orders|length }}</div>
+      <div class="label">Recent orders shown</div>
+    </div>
+  </section>
+
+  <div class="content-grid two-thirds">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">STOCK OVERVIEW</div>
+          <h2>Bean inventory</h2>
+        </div>
+        <a class="text-link" href="{{ url_for('inventory') }}">Manage inventory <span>→</span></a>
+      </div>
+      {% if beans %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Bean</th><th>Available</th><th>Threshold</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for bean in beans %}
+                <tr>
+                  <td><strong>{{ bean.name }}</strong></td>
+                  <td class="number">{{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }}</td>
+                  <td class="muted-cell">{{ "%.2f"|format(bean.low_stock_threshold) }} {{ bean.unit }}</td>
+                  <td>{% if bean.current_stock <= 0 %}<span class="badge out"><span></span>Out of stock</span>{% elif bean.current_stock <= bean.low_stock_threshold %}<span class="badge low"><span></span>Low stock</span>{% else %}<span class="badge ok"><span></span>Healthy</span>{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">▦</div><strong>Your catalog is empty</strong><span>Add your first bean type to start tracking stock.</span><a class="button" href="{{ url_for('new_bean') }}">Add first bean</a></div>
+      {% endif %}
+    </section>
+
+    <section class="panel recent-panel">
+      <div class="panel-head">
+        <div><div class="eyebrow">LATEST</div><h2>Recent orders</h2></div>
+        <a class="icon-link" href="{{ url_for('orders') }}" aria-label="View all orders">→</a>
+      </div>
+      {% if recent_orders %}
+        <div class="order-list">
+          {% for order in recent_orders %}
+            <div class="order-row">
+              <div class="avatar">{{ order.customer_name[:1]|upper }}</div>
+              <div class="order-main"><strong>{{ order.customer_name }}</strong><span>{{ order.bean_name }} · {{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</span></div>
+              <span class="badge {{ 'cancelled' if order.status == 'cancelled' else 'ok' }}">{{ 'Cancelled' if order.status == 'cancelled' else 'Fulfilled' }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact"><div class="empty-icon">↗</div><strong>No orders yet</strong><span>New orders will appear here.</span></div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

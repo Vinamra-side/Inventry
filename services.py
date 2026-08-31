@@ -17,7 +17,11 @@ committed once at the end) so a stock update and its log entry can
 never end up out of sync if something fails partway through.
 """
 
-from db import get_connection
+import math
+import re
+from datetime import date
+
+from db import get_connection, release_connection
 
 
 class InsufficientStockError(Exception):
@@ -36,6 +40,36 @@ class LicenseLimitError(Exception):
     """Raised when an active licence has no remaining user seats."""
 
 
+ALLOWED_UNITS = {"kg", "g", "lb"}
+PHONE_PATTERN = re.compile(r"^\+?[0-9][0-9 -]{6,19}$")
+
+
+def _validate_text(value, label, max_length):
+    value = (value or "").strip()
+    if not value:
+        raise ValueError(f"{label} is required.")
+    if len(value) > max_length:
+        raise ValueError(f"{label} must be {max_length} characters or fewer.")
+    return value
+
+
+def _license_limit(cur):
+    cur.execute("SELECT max_users FROM license_status WHERE id = 1")
+    row = cur.fetchone()
+    return max(1, int(row["max_users"])) if row else 1
+
+
+def _combined_active_user_count(cur):
+    cur.execute(
+        """
+        SELECT
+          (SELECT COUNT(*) FROM app_users WHERE is_active = true) +
+          (SELECT COUNT(*) FROM subscribers WHERE is_active = true) AS count
+        """
+    )
+    return int(cur.fetchone()["count"])
+
+
 def _row_to_bean(row):
     return dict(row) if row else None
 
@@ -47,7 +81,7 @@ def list_beans():
             cur.execute("SELECT * FROM beans ORDER BY name ASC")
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def get_bean(bean_id):
@@ -57,11 +91,16 @@ def get_bean(bean_id):
             cur.execute("SELECT * FROM beans WHERE id = %s", (bean_id,))
             return cur.fetchone()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def add_bean(name, unit="kg", low_stock_threshold=2.0):
-    name = name.strip()
+    name = _validate_text(name, "Bean name", 120)
+    unit = (unit or "").strip()
+    if unit not in ALLOWED_UNITS:
+        raise ValueError("Unit must be kg, g, or lb.")
+    if not math.isfinite(float(low_stock_threshold)) or float(low_stock_threshold) < 0:
+        raise ValueError("Low-stock threshold must be zero or greater.")
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -81,12 +120,18 @@ def add_bean(name, unit="kg", low_stock_threshold=2.0):
         conn.commit()
         return bean
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def add_inventory(bean_id, quantity, added_by=None, note=None):
-    if quantity is None or quantity <= 0:
+    if quantity is None or not math.isfinite(float(quantity)) or quantity <= 0:
         raise InvalidQuantityError("Quantity to add must be greater than zero.")
+    added_by = (added_by or "").strip() or None
+    note = (note or "").strip() or None
+    if added_by and len(added_by) > 120:
+        raise ValueError("Added by must be 120 characters or fewer.")
+    if note and len(note) > 255:
+        raise ValueError("Note must be 255 characters or fewer.")
 
     conn = get_connection()
     try:
@@ -122,12 +167,24 @@ def add_inventory(bean_id, quantity, added_by=None, note=None):
         conn.commit()
         return updated_bean
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def create_order(bean_id, customer_name, quantity, notes=None, delivery_date=None):
-    if quantity is None or quantity <= 0:
+    if quantity is None or not math.isfinite(float(quantity)) or quantity <= 0:
         raise InvalidQuantityError("Order quantity must be greater than zero.")
+    customer_name = _validate_text(customer_name, "Customer name", 120)
+    notes = (notes or "").strip() or None
+    if notes and len(notes) > 255:
+        raise ValueError("Notes must be 255 characters or fewer.")
+    if delivery_date:
+        if isinstance(delivery_date, str):
+            try:
+                delivery_date = date.fromisoformat(delivery_date)
+            except ValueError as exc:
+                raise ValueError("Delivery date must be a valid date.") from exc
+        elif not isinstance(delivery_date, date):
+            raise ValueError("Delivery date must be a valid date.")
 
     conn = get_connection()
     try:
@@ -174,7 +231,7 @@ def create_order(bean_id, customer_name, quantity, notes=None, delivery_date=Non
         order["bean_unit"] = bean["unit"]
         return order
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def cancel_order(order_id):
@@ -188,6 +245,8 @@ def cancel_order(order_id):
 
             if order["status"] == "cancelled":
                 return order
+            if order["status"] != "pending_delivery":
+                raise ValueError("Only orders awaiting delivery can be cancelled.")
 
             cur.execute(
                 "UPDATE beans SET current_stock = current_stock + %s WHERE id = %s",
@@ -212,10 +271,12 @@ def cancel_order(order_id):
         conn.commit()
         return updated_order
     finally:
-        conn.close()
+        release_connection(conn)
 
 
-def list_orders():
+def list_orders(limit=50, offset=0):
+    limit = max(1, min(int(limit), 200))
+    offset = max(0, int(offset))
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -225,14 +286,18 @@ def list_orders():
                 FROM orders
                 JOIN beans ON beans.id = orders.bean_id
                 ORDER BY orders.created_at DESC
-                """
+                LIMIT %s OFFSET %s
+                """,
+                (limit, offset),
             )
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
-def list_deliveries():
+def list_deliveries(limit=101, offset=0):
+    limit = max(1, min(int(limit), 200))
+    offset = max(0, int(offset))
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -242,11 +307,13 @@ def list_deliveries():
                 FROM orders JOIN beans ON beans.id = orders.bean_id
                 WHERE orders.status IN ('pending_delivery', 'delivered', 'fulfilled')
                 ORDER BY orders.delivery_date NULLS LAST, orders.created_at DESC
-                """
+                LIMIT %s OFFSET %s
+                """,
+                (limit, offset),
             )
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def mark_order_delivered(order_id):
@@ -267,7 +334,7 @@ def mark_order_delivered(order_id):
         conn.commit()
         return order
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def list_todays_fulfilled_orders():
@@ -279,30 +346,34 @@ def list_todays_fulfilled_orders():
                 SELECT orders.*, beans.name AS bean_name, beans.unit AS bean_unit
                 FROM orders
                 JOIN beans ON beans.id = orders.bean_id
-                WHERE orders.status IN ('fulfilled', 'pending_delivery', 'delivered')
+                WHERE orders.status IN ('fulfilled', 'delivered')
                   AND orders.created_at::date = CURRENT_DATE
                 ORDER BY orders.created_at ASC
                 """
             )
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def add_subscriber(name, phone_number):
+    name = _validate_text(name, "Name", 120)
+    phone_number = (phone_number or "").strip()
+    if len(phone_number) > 20 or not PHONE_PATTERN.fullmatch(phone_number):
+        raise ValueError("Enter a valid phone number using 7 to 20 characters.")
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT max_users FROM license_status WHERE id = 1")
-            license_row = cur.fetchone()
-            cur.execute("SELECT COUNT(*) AS count FROM subscribers WHERE is_active = true")
-            active_count = cur.fetchone()["count"]
-            if license_row and active_count >= license_row["max_users"]:
+            # Serialize seat changes so concurrent requests cannot exceed the limit.
+            cur.execute("SELECT id FROM license_status WHERE id = 1 FOR UPDATE")
+            limit = _license_limit(cur)
+            active_count = _combined_active_user_count(cur)
+            if active_count >= limit:
                 raise LicenseLimitError(
-                    f"This licence allows {license_row['max_users']} active users. "
+                    f"This licence allows {limit} active users. "
                     "Increase the seat limit in License Control before adding another."
                 )
-            cur.execute("SELECT id FROM subscribers WHERE phone_number = %s", (phone_number.strip(),))
+            cur.execute("SELECT id FROM subscribers WHERE phone_number = %s", (phone_number,))
             if cur.fetchone():
                 raise ValueError(f"A subscriber with phone number {phone_number} already exists.")
 
@@ -312,13 +383,13 @@ def add_subscriber(name, phone_number):
                 VALUES (%s, %s)
                 RETURNING *
                 """,
-                (name.strip(), phone_number.strip()),
+                (name, phone_number),
             )
             subscriber = cur.fetchone()
         conn.commit()
         return subscriber
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def remove_subscriber(subscriber_id):
@@ -331,7 +402,7 @@ def remove_subscriber(subscriber_id):
                 raise NotFoundError(f"No subscriber found with id {subscriber_id}.")
         conn.commit()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def list_active_subscribers():
@@ -341,7 +412,7 @@ def list_active_subscribers():
             cur.execute("SELECT * FROM subscribers WHERE is_active = true ORDER BY name ASC")
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def list_subscribers():
@@ -351,11 +422,13 @@ def list_subscribers():
             cur.execute("SELECT * FROM subscribers ORDER BY name ASC")
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
-def list_stock_history(sku=None, movement_type=None):
+def list_stock_history(sku=None, movement_type=None, limit=101, offset=0):
     """Return the immutable stock ledger, with optional safe filters."""
+    limit = max(1, min(int(limit), 200))
+    offset = max(0, int(offset))
     conn = get_connection()
     try:
         clauses, params = [], []
@@ -373,12 +446,13 @@ def list_stock_history(sku=None, movement_type=None):
                 FROM stock_movements JOIN beans ON beans.id = stock_movements.bean_id
                 {where}
                 ORDER BY stock_movements.created_at DESC
+                LIMIT %s OFFSET %s
                 """,
-                params,
+                [*params, limit, offset],
             )
             return cur.fetchall()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def get_insights():
@@ -389,10 +463,10 @@ def get_insights():
             cur.execute(
                 """
                 SELECT beans.*, COALESCE(SUM(orders.quantity) FILTER (
-                    WHERE orders.status IN ('fulfilled', 'pending_delivery', 'delivered') AND orders.created_at >= now() - interval '7 days'
+                    WHERE orders.status IN ('fulfilled', 'delivered') AND orders.created_at >= now() - interval '7 days'
                 ), 0) AS demand_7d,
                 COALESCE(SUM(orders.quantity) FILTER (
-                    WHERE orders.status IN ('fulfilled', 'pending_delivery', 'delivered') AND orders.created_at >= now() - interval '30 days'
+                    WHERE orders.status IN ('fulfilled', 'delivered') AND orders.created_at >= now() - interval '30 days'
                 ), 0) AS demand_30d
                 FROM beans LEFT JOIN orders ON orders.bean_id = beans.id
                 GROUP BY beans.id ORDER BY beans.name
@@ -408,7 +482,7 @@ def get_insights():
                 rows.append(item)
             return rows
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def get_license_status():
@@ -420,25 +494,4 @@ def get_license_status():
             cur.execute("SELECT * FROM license_status WHERE id = 1")
             return cur.fetchone()
     finally:
-        conn.close()
-
-
-def set_license_status(is_active, note=None, max_users=None):
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE license_status
-                SET is_active = %s, note = %s,
-                    max_users = COALESCE(%s, max_users), updated_at = now()
-                WHERE id = 1
-                RETURNING *
-                """,
-                (is_active, note, max_users),
-            )
-            row = cur.fetchone()
-        conn.commit()
-        return row
-    finally:
-        conn.close()
+        release_connection(conn)

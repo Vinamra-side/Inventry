@@ -69,7 +69,7 @@
             <div class="order-row">
               <div class="avatar">{{ order.customer_name[:1]|upper }}</div>
               <div class="order-main"><strong>{{ order.customer_name }}</strong><span>{{ order.bean_name }} · {{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</span></div>
-              <span class="badge {{ 'cancelled' if order.status == 'cancelled' else 'ok' }}">{{ 'Cancelled' if order.status == 'cancelled' else 'Fulfilled' }}</span>
+              <span class="badge {{ 'cancelled' if order.status == 'cancelled' else ('ok' if order.status in ['delivered','fulfilled'] else 'low') }}">{{ order.status|replace('_', ' ')|title }}</span>
             </div>
           {% endfor %}
         </div>

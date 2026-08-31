@@ -3,7 +3,9 @@
 - `app_users` is now the licensed user table for access control.
 - Every active login account consumes one seat, including administrators.
 - Creating or re-enabling an account is blocked when the seat limit is reached.
-- When `LICENSE_TOKEN` + `LICENSE_PUBLIC_KEY` contain a valid signed licence, `payload.max_users` is authoritative and cannot be edited in the app.
-- To increase seats, issue a new signed licence with `license_manager.py issue --max-users N`, then replace `LICENSE_TOKEN` in Vercel and redeploy.
-- Without signed licensing (local/dev), `license_status.max_users` remains the fallback limit.
+- The owner manages activation, the inactive message, and the total seat limit from the dedicated native Windows application.
+- Changes are saved immediately in `license_status`; no licence key, environment-variable change, or redeployment is required.
+- Login accounts and licensed operational users share the same seat total.
+- The fixed licence-owner credentials do not consume a user seat.
+- The Windows application connects to the secured API in this inventory deployment and has no Neon/database configuration of its own.
 - Existing accounts are not deleted if a replacement licence has a lower limit; disable accounts until active users are within the new limit.

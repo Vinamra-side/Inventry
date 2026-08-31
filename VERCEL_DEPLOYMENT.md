@@ -10,7 +10,6 @@ Keep these files/folders in the Vercel project:
 - `db.py` — PostgreSQL connection helper
 - `services.py` — inventory/order/license business logic
 - `config.py` — Flask configuration
-- `license_verifier.py` — optional signed-license validation
 - `schema.sql` — database schema
 - `requirements.txt` — Python dependencies
 - `templates/` — Jinja templates
@@ -25,6 +24,9 @@ Use an external PostgreSQL provider such as Neon. Create a database and copy its
 ## 2. Initialize the database
 
 Open the provider's SQL editor and run the complete contents of `schema.sql` once.
+
+Run it again when upgrading an existing deployment. The migration adds login
+throttling, integrity constraints, and query indexes without deleting data.
 
 This is preferred over allowing a Vercel function to create/alter tables.
 
@@ -41,18 +43,21 @@ Required:
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD`
 - `ADMIN_DISPLAY_NAME` (optional)
+- `LICENSE_ADMIN_USERNAME` (the one fixed Windows-app owner login)
+- `LICENSE_ADMIN_PASSWORD` (use a different strong password)
 
 Recommended:
 
 - `INIT_SCHEMA=false`
+- `BOOTSTRAP_ADMIN=false` after the first administrator has been created
 - `SESSION_COOKIE_SECURE=true`
-
-Optional signed licensing:
-
-- `LICENSE_PUBLIC_KEY`
-- `LICENSE_TOKEN`
+- `LICENSE_OWNER_TOKEN_MAX_AGE=2592000`
 
 Set the values in Vercel Project Settings → Environment Variables, then redeploy.
+
+This repository targets Vercel's Singapore region (`sin1`) so application code
+runs near the Singapore PostgreSQL database. If you move the database, update
+`regions` in `vercel.json` to the closest Vercel compute region.
 
 ## 5. Test
 
@@ -65,7 +70,26 @@ After deployment, open the Vercel URL. Test:
 5. Cancel order and verify stock returns
 6. Delivery completion
 7. Users/license seat limit
-8. `/login` → sign in as the bootstrap admin, then use **Admin → License control**
+8. Open the native Windows licence application, sign in with the fixed owner credentials, and update Licence Control
+9. Disable a temporary login account and confirm its already-open session is rejected
+10. Confirm delivered orders do not offer or accept cancellation
+
+## Install as an app
+
+The deployment is also a Progressive Web App. On Android or desktop Chrome/Edge,
+open the account menu and select **Install Saiko app** (or use the browser's
+Install command). On iPhone/iPad, open the site in Safari, choose **Share**, then
+**Add to Home Screen**. The installed app and the website use the same database,
+accounts, and deployment.
+
+## Manage the licence from Windows
+
+Build `SaikoLicenceControl.exe` from the sibling `saiko_inventory_licensing`
+repository and copy it to the dedicated Windows device. The application connects
+directly to this inventory deployment and asks only for the fixed owner username
+and password. It has no Neon URL, database credentials, separate schema, or
+separate Vercel backend. Licence changes apply immediately without a key or
+redeployment.
 
 ## Important Vercel notes
 
@@ -73,5 +97,4 @@ After deployment, open the Vercel URL. Test:
 - Do not run NGINX on Vercel.
 - Do not use SQLite for persistent production data.
 - The filesystem is not a persistent data store; inventory data belongs in PostgreSQL.
-- Keep the private licensing signing key out of this repository and out of Vercel.
 - For Neon, use its pooled connection string where appropriate to reduce connection pressure from serverless functions.

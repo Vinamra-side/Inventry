@@ -67,9 +67,8 @@ CREATE INDEX IF NOT EXISTS idx_stock_movements_bean_id ON stock_movements(bean_i
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at);
 
 -- Single-row table used as a remote on/off switch for the whole app.
--- Toggle it from the database, or from the app's own
--- /admin/license page, without ever touching the code running at the
--- shop.
+-- Toggle it from the database or from the separately deployed licensing owner
+-- portal, without touching the inventory code running at the shop.
 CREATE TABLE IF NOT EXISTS license_status (
     id INTEGER PRIMARY KEY DEFAULT 1,
     is_active BOOLEAN NOT NULL DEFAULT true,
@@ -99,3 +98,44 @@ CREATE TABLE IF NOT EXISTS app_users (
     last_login_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_app_users_username ON app_users(username);
+
+-- Persistent login throttling works across serverless instances.
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(80) NOT NULL,
+    ip_address VARCHAR(64) NOT NULL,
+    succeeded BOOLEAN NOT NULL DEFAULT false,
+    attempted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_lookup
+    ON login_attempts (LOWER(username), ip_address, attempted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_status_delivery
+    ON orders (status, delivery_date, created_at DESC);
+
+-- Server-side integrity constraints. The DO blocks make this migration safe
+-- to run repeatedly on existing databases.
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'beans_name_not_blank') THEN
+        ALTER TABLE beans ADD CONSTRAINT beans_name_not_blank CHECK (length(btrim(name)) > 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'beans_threshold_nonnegative') THEN
+        ALTER TABLE beans ADD CONSTRAINT beans_threshold_nonnegative CHECK (low_stock_threshold >= 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_customer_not_blank') THEN
+        ALTER TABLE orders ADD CONSTRAINT orders_customer_not_blank CHECK (length(btrim(customer_name)) > 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_quantity_positive') THEN
+        ALTER TABLE orders ADD CONSTRAINT orders_quantity_positive CHECK (quantity > 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_status_valid') THEN
+        ALTER TABLE orders ADD CONSTRAINT orders_status_valid
+            CHECK (status IN ('pending_delivery', 'delivered', 'fulfilled', 'cancelled'));
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscribers_name_not_blank') THEN
+        ALTER TABLE subscribers ADD CONSTRAINT subscribers_name_not_blank CHECK (length(btrim(name)) > 0);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscribers_phone_length') THEN
+        ALTER TABLE subscribers ADD CONSTRAINT subscribers_phone_length
+            CHECK (length(btrim(phone_number)) BETWEEN 7 AND 20);
+    END IF;
+END $$;

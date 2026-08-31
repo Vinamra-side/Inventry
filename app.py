@@ -1,13 +1,14 @@
 import os
-import time
+import secrets
+from urllib.parse import urlsplit
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
-from auth import admin_required, authenticate, create_user, ensure_bootstrap_admin, get_seat_status, list_app_users, login_required, set_user_active
+from auth import LoginRateLimitError, admin_required, authenticate, create_user, ensure_bootstrap_admin, get_seat_status, list_app_users, login_required, set_user_active
 
 import db
 from config import Config
-from license_verifier import verify_license_token
+from license_api import bp as license_api_blueprint
 from services import (
     InsufficientStockError,
     InvalidQuantityError,
@@ -28,38 +29,53 @@ from services import (
     list_subscribers,
     mark_order_delivered,
     remove_subscriber,
-    set_license_status,
 )
 
-# How long a license check is trusted before re-checking the database.
-# Keeps the on/off switch responsive (at most this many seconds delay)
-# without hitting the database on every single request.
-LICENSE_CACHE_SECONDS = 60
-
-_license_cache = {"is_active": True, "note": None, "checked_at": 0.0}
-
-
 def _license_is_active():
-    now = time.time()
-    if now - _license_cache["checked_at"] > LICENSE_CACHE_SECONDS:
-        try:
-            status = get_license_status()
-            _license_cache["is_active"] = bool(status["is_active"]) if status else True
-            _license_cache["note"] = status["note"] if status else None
-        except Exception:
-            # If the license check itself fails (e.g. a brief database
-            # hiccup), fail open rather than locking staff out of the
-            # app over an unrelated outage. Change this to fail closed
-            # if you'd rather err the other way.
-            pass
-        _license_cache["checked_at"] = now
-    return _license_cache["is_active"], _license_cache["note"]
+    try:
+        status = get_license_status()
+        return (bool(status["is_active"]), status["note"]) if status else (True, None)
+    except Exception:
+        # Fail open during a brief database outage rather than locking staff out.
+        return True, None
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    app.teardown_appcontext(db.close_request_connection)
+
+    @app.context_processor
+    def inject_csrf_token():
+        def csrf_token():
+            token = session.get("csrf_token")
+            if not token:
+                token = secrets.token_urlsafe(32)
+                session["csrf_token"] = token
+            return token
+        return {"csrf_token": csrf_token}
+
+    @app.before_request
+    def protect_post_requests():
+        if request.path.startswith("/api/license-owner/"):
+            return None
+        if request.method != "POST":
+            return None
+        expected = session.get("csrf_token", "")
+        supplied = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
+        if not expected or not secrets.compare_digest(expected, supplied):
+            abort(400, description="Invalid or missing security token. Refresh the page and try again.")
+
+    @app.after_request
+    def set_response_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        if request.endpoint == "static" and response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        if request.path.startswith("/api/license-owner/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     # Vercel functions are ephemeral. Prefer running schema.sql once against
     # the external PostgreSQL database, then set INIT_SCHEMA=false. Keeping
@@ -68,7 +84,9 @@ def create_app():
         with app.app_context():
             db.init_schema()
 
-    ensure_bootstrap_admin()
+    if os.environ.get("BOOTSTRAP_ADMIN", "false").lower() == "true":
+        ensure_bootstrap_admin()
+    app.register_blueprint(license_api_blueprint)
     register_routes(app)
     return app
 
@@ -76,17 +94,24 @@ def create_app():
 def register_routes(app):
     @app.before_request
     def enforce_license():
-        # Always allow the admin page itself, so a disabled license can
-        # still be re-enabled through it, and allow static files.
-        if request.endpoint in ("login", "logout", "static"):
+        if request.path.startswith("/api/license-owner/"):
+            return None
+        if request.endpoint in ("login", "logout", "static", "manifest", "service_worker"):
             return None
         is_active, note = _license_is_active()
-        signed = verify_license_token()
-        license_required = bool(os.environ.get("LICENSE_TOKEN") or os.environ.get("LICENSE_PUBLIC_KEY"))
-        if license_required and not signed.get("valid"):
-            return render_template("license_inactive.html", note=signed.get("reason", "License inactive")), 503
         if not is_active:
             return render_template("license_inactive.html", note=note), 503
+
+    @app.route("/manifest.webmanifest")
+    def manifest():
+        return send_from_directory(app.static_folder, "manifest.webmanifest", mimetype="application/manifest+json")
+
+    @app.route("/service-worker.js")
+    def service_worker():
+        response = send_from_directory(app.static_folder, "service-worker.js", mimetype="application/javascript")
+        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Service-Worker-Allowed"] = "/"
+        return response
 
 
     @app.route("/login", methods=["GET", "POST"])
@@ -94,14 +119,26 @@ def register_routes(app):
         if session.get("user_id"):
             return redirect(url_for("dashboard"))
         if request.method == "POST":
-            user = authenticate(request.form.get("username", ""), request.form.get("password", ""))
+            try:
+                user = authenticate(
+                    request.form.get("username", ""),
+                    request.form.get("password", ""),
+                    request.access_route[0] if request.access_route else request.remote_addr,
+                )
+            except LoginRateLimitError as exc:
+                flash(str(exc), "error")
+                return render_template("login.html"), 429
             if user:
                 session.clear()
                 session["user_id"] = user["id"]
                 session["username"] = user["username"]
                 session["display_name"] = user["display_name"] or user["username"]
                 session["role"] = user["role"]
-                return redirect(request.args.get("next") or url_for("dashboard"))
+                next_url = request.args.get("next", "")
+                parsed = urlsplit(next_url)
+                if not next_url.startswith("/") or parsed.scheme or parsed.netloc or next_url.startswith("//"):
+                    next_url = url_for("dashboard")
+                return redirect(next_url)
             flash("Incorrect username or password.", "error")
         return render_template("login.html")
 
@@ -115,7 +152,7 @@ def register_routes(app):
     @login_required
     def dashboard():
         beans = list_beans()
-        recent_orders = list_orders()[:10]
+        recent_orders = list_orders(limit=10)
         low_stock_beans = [b for b in beans if float(b["current_stock"]) <= float(b["low_stock_threshold"])]
         return render_template(
             "dashboard.html",
@@ -194,13 +231,29 @@ def register_routes(app):
                 flash(str(exc), "error")
             return redirect(url_for("orders"))
 
-        all_orders = list_orders()
-        return render_template("orders.html", beans=beans, orders=all_orders)
+        page = max(1, request.args.get("page", 1, type=int))
+        page_size = 50
+        rows = list_orders(limit=page_size + 1, offset=(page - 1) * page_size)
+        return render_template(
+            "orders.html",
+            beans=beans,
+            orders=rows[:page_size],
+            page=page,
+            has_next=len(rows) > page_size,
+        )
 
     @app.route("/deliveries")
     @login_required
     def deliveries():
-        return render_template("deliveries.html", deliveries=list_deliveries())
+        page = max(1, request.args.get("page", 1, type=int))
+        page_size = 100
+        rows = list_deliveries(limit=page_size + 1, offset=(page - 1) * page_size)
+        return render_template(
+            "deliveries.html",
+            deliveries=rows[:page_size],
+            page=page,
+            has_next=len(rows) > page_size,
+        )
 
     @app.route("/deliveries/<int:order_id>/complete", methods=["POST"])
     @login_required
@@ -208,7 +261,7 @@ def register_routes(app):
         try:
             mark_order_delivered(order_id)
             flash(f"Order #{order_id} marked as delivered.", "success")
-        except NotFoundError as exc:
+        except (NotFoundError, ValueError) as exc:
             flash(str(exc), "error")
         return redirect(url_for("deliveries"))
 
@@ -222,7 +275,7 @@ def register_routes(app):
                 f"Order #{order['id']} cancelled, {float(order['quantity']):g} {bean['unit']} returned to stock.",
                 "success",
             )
-        except NotFoundError as exc:
+        except (NotFoundError, ValueError) as exc:
             flash(str(exc), "error")
         return redirect(url_for("orders"))
 
@@ -267,11 +320,21 @@ def register_routes(app):
     @app.route("/stock-history")
     @login_required
     def stock_history():
+        page = max(1, request.args.get("page", 1, type=int))
+        page_size = 100
+        rows = list_stock_history(
+            request.args.get("bean"),
+            request.args.get("type"),
+            limit=page_size + 1,
+            offset=(page - 1) * page_size,
+        )
         return render_template(
             "stock_history.html",
-            movements=list_stock_history(request.args.get("bean"), request.args.get("type")),
+            movements=rows[:page_size],
             selected_type=request.args.get("type", ""),
             selected_bean=request.args.get("bean", ""),
+            page=page,
+            has_next=len(rows) > page_size,
         )
 
     # ---- Login accounts (admin only) ------------------------------------
@@ -299,37 +362,6 @@ def register_routes(app):
             except ValueError as exc:
                 flash(str(exc), "error")
         return redirect(url_for("admin_accounts"))
-
-    # ---- Remote license switch ------------------------------------------
-    # Visit /admin/license?key=YOUR_ADMIN_KEY from your own browser, from
-    # anywhere, to turn the app on or off for everyone using it. Nothing
-    # needs to be sent to whoever runs the app.
-
-    @app.route("/admin/license", methods=["GET", "POST"])
-    @admin_required
-    def admin_license():
-        if request.method == "POST":
-            try:
-                max_users = int(request.form.get("max_users", ""))
-                if max_users < 1:
-                    raise ValueError
-            except ValueError:
-                flash("User limit must be a whole number of at least 1.", "error")
-                return redirect(url_for("admin_license"))
-            signed = verify_license_token()
-            signed_limit = signed.get("payload", {}).get("max_users") if signed.get("valid") else None
-            set_license_status(
-                is_active=request.form.get("is_active") == "on",
-                note=request.form.get("note") or None,
-                max_users=None if signed_limit is not None else max_users,
-            )
-            _license_cache["checked_at"] = 0  # force an immediate re-check
-            flash("License status updated.", "success")
-            return redirect(url_for("admin_license"))
-
-        status = get_license_status()
-        return render_template("admin_license.html", status=status, signed=verify_license_token(), seats=get_seat_status())
-
 
 app = create_app()
 

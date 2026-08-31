@@ -19,6 +19,7 @@ import os
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+from flask import g, has_app_context
 
 load_dotenv()
 
@@ -31,7 +32,42 @@ def get_connection():
             "DATABASE_URL is not set. Copy .env.example to .env and fill in "
             "your PostgreSQL connection string."
         )
-    return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    if has_app_context():
+        conn = g.get("database_connection")
+        if conn is None or conn.closed:
+            conn = psycopg2.connect(
+                DATABASE_URL,
+                cursor_factory=psycopg2.extras.RealDictCursor,
+                connect_timeout=10,
+            )
+            g.database_connection = conn
+        return conn
+    return psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=psycopg2.extras.RealDictCursor,
+        connect_timeout=10,
+    )
+
+
+def release_connection(conn):
+    """Close standalone connections while retaining one connection per request."""
+    if has_app_context() and g.get("database_connection") is conn:
+        return
+    if conn is not None and not conn.closed:
+        conn.close()
+
+
+def close_request_connection(error=None):
+    """Close the request-scoped connection and discard failed transactions."""
+    conn = g.pop("database_connection", None)
+    if conn is None:
+        return
+    try:
+        if error is not None and not conn.closed:
+            conn.rollback()
+    finally:
+        if not conn.closed:
+            conn.close()
 
 
 def init_schema():
@@ -46,4 +82,4 @@ def init_schema():
             cur.execute(schema_sql)
         conn.commit()
     finally:
-        conn.close()
+        release_connection(conn)

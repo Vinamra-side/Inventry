@@ -30,6 +30,7 @@
             <td>
                 {% if order.status == "pending_delivery" %}
                 <form method="post" action="{{ url_for('complete_delivery', order_id=order.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit">Mark delivered</button>
                 </form>
                 {% endif %}
@@ -41,4 +42,5 @@
 {% else %}
 <p>No deliveries yet. Record an order to see it here.</p>
 {% endif %}
+{% if page > 1 or has_next %}<nav class="pagination" aria-label="Delivery pages">{% if page > 1 %}<a class="button secondary" href="{{ url_for('deliveries', page=page-1) }}">← Previous</a>{% endif %}{% if has_next %}<a class="button secondary" href="{{ url_for('deliveries', page=page+1) }}">Next →</a>{% endif %}</nav>{% endif %}
 {% endblock %}

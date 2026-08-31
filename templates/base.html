@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#d94b9b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Saiko">
   <title>{% block title %}Dashboard{% endblock %} · SAIKO</title>
+  <link rel="manifest" href="{{ url_for('manifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='app-icon-192.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
@@ -79,8 +84,15 @@
             </div>
             {% endif %}
 
+            <div class="account-menu-section">
+              <button type="button" class="install-app-button" data-install-app hidden>
+                <span class="account-menu-icon" aria-hidden="true">↓</span><span>Install Saiko app</span>
+              </button>
+            </div>
+
             <div class="account-menu-section account-menu-bottom">
               <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="account-menu-logout" type="submit" role="menuitem">
                   <span class="account-menu-icon" aria-hidden="true">↪</span><span>Logout</span>
                 </button>
@@ -136,5 +148,6 @@
       });
     });
   </script>
+  <script src="{{ url_for('static', filename='pwa.js') }}" defer></script>
 </body>
 </html>

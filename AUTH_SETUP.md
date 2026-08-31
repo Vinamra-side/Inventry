@@ -11,10 +11,14 @@
 5. Admins can open **Admin → Login accounts** to create staff users and more admins.
 
 Roles:
-- `admin`: all operational pages + licensed user management + login-account management + license control.
+- `admin`: all operational pages + licensed user management + login-account management.
 - `user`: dashboard, inventory, orders, deliveries, insights, and stock history.
 
 Security notes:
 - Never commit `.env` or your admin password.
 - Set `SESSION_COOKIE_SECURE=true` on Vercel.
-- The old `?key=ADMIN_KEY` license-admin URL is no longer used. License Control now requires an authenticated admin session.
+- Configure `LICENSE_ADMIN_USERNAME` and `LICENSE_ADMIN_PASSWORD` here for the
+  dedicated native Windows licence application. This fixed owner login does not
+  consume a seat.
+- The Windows application connects directly to this inventory deployment. It
+  has no database configuration and no separate web backend.

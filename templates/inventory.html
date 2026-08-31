@@ -12,6 +12,7 @@
     <section class="panel form-panel">
       <div class="panel-head"><div><div class="eyebrow">RESTOCK</div><h2>Add stock</h2><p class="panel-copy">Increase stock when a new shipment arrives.</p></div><div class="round-icon">＋</div></div>
       <form class="stacked" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="bean_id">Bean</label>
         <select id="bean_id" name="bean_id" required>
           {% for bean in beans %}<option value="{{ bean.id }}">{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available</option>{% endfor %}

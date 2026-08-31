@@ -8,7 +8,7 @@ from auth import LoginRateLimitError, admin_required, authenticate, create_user,
 
 import db
 from config import Config
-from license_api import bp as license_api_blueprint
+from licensing_integration import bp as licensing_integration_blueprint
 from services import (
     InsufficientStockError,
     InvalidQuantityError,
@@ -58,7 +58,7 @@ def create_app():
 
     @app.before_request
     def protect_post_requests():
-        if request.path.startswith("/api/license-owner/"):
+        if request.path.startswith("/api/licensing-integration/"):
             return None
         if request.method != "POST":
             return None
@@ -73,7 +73,7 @@ def create_app():
         response.headers.setdefault("Referrer-Policy", "same-origin")
         if request.endpoint == "static" and response.status_code == 200:
             response.headers["Cache-Control"] = "public, max-age=86400"
-        if request.path.startswith("/api/license-owner/"):
+        if request.path.startswith("/api/licensing-integration/"):
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -86,7 +86,7 @@ def create_app():
 
     if os.environ.get("BOOTSTRAP_ADMIN", "false").lower() == "true":
         ensure_bootstrap_admin()
-    app.register_blueprint(license_api_blueprint)
+    app.register_blueprint(licensing_integration_blueprint)
     register_routes(app)
     return app
 
@@ -94,7 +94,7 @@ def create_app():
 def register_routes(app):
     @app.before_request
     def enforce_license():
-        if request.path.startswith("/api/license-owner/"):
+        if request.path.startswith("/api/licensing-integration/"):
             return None
         if request.endpoint in ("login", "logout", "static", "manifest", "service_worker"):
             return None

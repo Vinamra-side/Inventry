@@ -43,15 +43,13 @@ Required:
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD`
 - `ADMIN_DISPLAY_NAME` (optional)
-- `LICENSE_ADMIN_USERNAME` (the one fixed Windows-app owner login)
-- `LICENSE_ADMIN_PASSWORD` (use a different strong password)
+- `LICENSING_INTEGRATION_KEY` (same random machine key as the separate licence service)
 
 Recommended:
 
 - `INIT_SCHEMA=false`
 - `BOOTSTRAP_ADMIN=false` after the first administrator has been created
 - `SESSION_COOKIE_SECURE=true`
-- `LICENSE_OWNER_TOKEN_MAX_AGE=2592000`
 
 Set the values in Vercel Project Settings → Environment Variables, then redeploy.
 
@@ -84,12 +82,11 @@ accounts, and deployment.
 
 ## Manage the licence from Windows
 
-Build `SaikoLicenceControl.exe` from the sibling `saiko_inventory_licensing`
-repository and copy it to the dedicated Windows device. The application connects
-directly to this inventory deployment and asks only for the fixed owner username
-and password. It has no Neon URL, database credentials, separate schema, or
-separate Vercel backend. Licence changes apply immediately without a key or
-redeployment.
+Deploy the sibling `saiko_inventory_licensing` repository as its own Vercel
+service, with no Neon or database variables. Give both Vercel projects the same
+`LICENSING_INTEGRATION_KEY`. The native Windows app signs in to that separate
+licence service with its one fixed owner username and password. Licence changes
+then reach inventory through the private integration API and apply immediately.
 
 ## Important Vercel notes
 

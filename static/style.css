@@ -311,21 +311,6 @@ form.stacked button { margin-top: 20px; width: 100%; }
 .install-app-button { cursor: pointer; }
 .install-login { width: 100%; margin-top: 10px; }
 
-.license-owner-page { min-height: 100vh; padding: 32px 18px; background: radial-gradient(circle at top, #4a263d 0, #211720 45%, #120f12 100%); color: var(--ink); }
-.license-owner-card { width: min(720px, 100%); margin: 0 auto; padding: 30px; border: 1px solid rgba(255,255,255,.1); border-radius: 24px; background: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.35); }
-.license-owner-card.compact { width: min(430px, 100%); }
-.license-owner-logo { width: 150px; height: auto; margin-bottom: 20px; }
-.license-owner-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
-.license-owner-header h1, .license-owner-card h1 { margin: 4px 0 6px; }
-.license-owner-summary { display: grid; grid-template-columns: 1fr 190px; gap: 14px; margin: 18px 0 24px; }
-.license-owner-summary .license-state { margin: 0; }
-.license-seat-card { display: grid; align-content: center; gap: 2px; padding: 14px; border-radius: 13px; background: var(--pink-soft); color: var(--pink-dark); }
-.license-seat-card strong { font-size: 22px; }
-.license-seat-card span { font-size: 10px; }
-.license-owner-form { max-width: none; }
-.license-updated { margin: 16px 0 0; color: var(--muted); font-size: 10px; }
-.license-back-link { display: inline-block; margin-top: 20px; color: var(--pink-dark); font-size: 11px; font-weight: 700; }
-@media (max-width: 620px) { .license-owner-page { padding: 14px; } .license-owner-card { padding: 21px; border-radius: 18px; } .license-owner-header { display: grid; } .license-owner-summary { grid-template-columns: 1fr; } }
 .logout-form { margin: 0; }
 body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38); }
 

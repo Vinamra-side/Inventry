@@ -17,8 +17,8 @@ Roles:
 Security notes:
 - Never commit `.env` or your admin password.
 - Set `SESSION_COOKIE_SECURE=true` on Vercel.
-- Configure `LICENSE_ADMIN_USERNAME` and `LICENSE_ADMIN_PASSWORD` here for the
-  dedicated native Windows licence application. This fixed owner login does not
-  consume a seat.
-- The Windows application connects directly to this inventory deployment. It
-  has no database configuration and no separate web backend.
+- Configure only `LICENSING_INTEGRATION_KEY` here for the separate licence
+  service. The owner username/password are configured only in the licence
+  Vercel project and do not consume a seat.
+- The licence service has no Neon access. It communicates with inventory through
+  the private integration API.

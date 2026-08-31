@@ -9,9 +9,9 @@ This update addresses the production audit findings:
 - external post-login redirects are rejected;
 - failed login attempts are rate-limited in PostgreSQL;
 - disabled accounts are checked on every protected request;
-- the secured licence-owner API remains reachable when the inventory application licence is inactive;
+- the secured machine-to-machine licensing integration remains reachable when inventory is inactive;
 - login accounts and licensed users share one enforced seat total;
-- owners manage activation and seat limits from a native Windows application with a fixed credential-protected API;
+- owners manage activation and seat limits through a separate licence service and native Windows application;
 - the web deployment is installable as a phone or desktop Progressive Web App;
 - order cancellation is limited to orders awaiting delivery;
 - order labels and sales insights use the actual fulfilment status;
@@ -26,5 +26,5 @@ This update addresses the production audit findings:
 2. Run `schema.sql` in the database provider's SQL editor.
 3. Confirm inventory Vercel environment variables from `.env.example`.
 4. Deploy this inventory code.
-5. Build the native Windows application from `saiko_inventory_licensing`.
+5. Deploy the separate no-Neon licence service and build its native Windows application.
 6. Run the checklist in `VERCEL_DEPLOYMENT.md`.

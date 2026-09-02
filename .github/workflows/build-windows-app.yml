@@ -1,0 +1,30 @@
+name: Build Saiko Inventory Windows App
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["desktop_app/**", ".github/workflows/build-windows-app.yml"]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Configure deployed app URL
+        shell: pwsh
+        env:
+          CONFIGURED_URL: ${{ vars.INVENTORY_APP_URL }}
+        run: |
+          $url = if ($env:CONFIGURED_URL) { $env:CONFIGURED_URL.TrimEnd('/') } else { 'https://saiko-inventory.vercel.app' }
+          "APP_URL = `"$url`"" | Set-Content desktop_app/backend_config.py
+      - run: python -m pip install -r desktop_app/requirements-build.txt
+      - name: Build EXE
+        working-directory: desktop_app
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SaikoInventory app.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SaikoInventory-Windows
+          path: desktop_app/dist/SaikoInventory.exe
+          if-no-files-found: error

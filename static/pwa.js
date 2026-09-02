@@ -1,4 +1,14 @@
 (function () {
+  if (document.body.classList.contains("auth-page")) {
+    const installButton = document.querySelector("[data-install-app]");
+    if (installButton) {
+      const download = document.createElement("a");
+      download.className = "button secondary install-login";
+      download.href = "https://github.com/Vinamra-side/Inventry/releases/latest/download/SaikoInventory.exe";
+      download.textContent = "Download Windows app";
+      installButton.before(download);
+    }
+  }
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
       let refreshing = false;

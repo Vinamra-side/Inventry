@@ -1,46 +1,7 @@
 {% extends "base.html" %}
-
 {% block title %}Deliveries{% endblock %}
-
+{% block mobile_title %}Deliveries{% endblock %}
 {% block content %}
-<h1>Deliveries</h1>
-
-{% if deliveries %}
-<table>
-    <thead>
-        <tr>
-            <th>Order</th>
-            <th>Customer</th>
-            <th>Bean</th>
-            <th>Quantity</th>
-            <th>Delivery date</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in deliveries %}
-        <tr>
-            <td>#{{ order.id }}</td>
-            <td>{{ order.customer_name }}</td>
-            <td>{{ order.bean_name }}</td>
-            <td>{{ "%g"|format(order.quantity|float) }} {{ order.bean_unit }}</td>
-            <td>{{ order.delivery_date if order.delivery_date else "Not scheduled" }}</td>
-            <td>{{ order.status|replace("_", " ")|title }}</td>
-            <td>
-                {% if order.status == "pending_delivery" %}
-                <form method="post" action="{{ url_for('complete_delivery', order_id=order.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Mark delivered</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>No deliveries yet. Record an order to see it here.</p>
-{% endif %}
-{% if page > 1 or has_next %}<nav class="pagination" aria-label="Delivery pages">{% if page > 1 %}<a class="button secondary" href="{{ url_for('deliveries', page=page-1) }}">← Previous</a>{% endif %}{% if has_next %}<a class="button secondary" href="{{ url_for('deliveries', page=page+1) }}">Next →</a>{% endif %}</nav>{% endif %}
+<section class="page-head"><div><div class="eyebrow">FULFILMENT</div><h1>Deliveries</h1><p class="subtitle">Confirm each delivery manually once it is complete.</p></div></section>
+<section class="panel"><div class="panel-head"><div><div class="eyebrow">DELIVERY QUEUE</div><h2>Order deliveries</h2></div><span class="count-pill">{{ deliveries|length }} orders</span></div>{% if deliveries %}<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Bean</th><th>Quantity</th><th>Delivery date</th><th>Status</th><th></th></tr></thead><tbody>{% for order in deliveries %}<tr><td><strong>{{ order.customer_name }}</strong></td><td>{{ order.bean_name }}</td><td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td><td class="muted-cell">{{ order.delivery_date or 'Not scheduled' }}</td><td><span class="badge {{ 'ok' if order.status in ['delivered', 'fulfilled'] else 'low' }}">{{ 'Delivered' if order.status in ['delivered', 'fulfilled'] else 'Awaiting delivery' }}</span></td><td>{% if order.status == 'pending_delivery' %}<form method="POST" action="{{ url_for('complete_delivery', order_id=order.id) }}"><button type="submit" class="table-action">Mark delivered</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact"><div class="empty-icon"></div><strong>No deliveries to track</strong><span>New orders will appear here awaiting delivery.</span></div>{% endif %}</section>
 {% endblock %}

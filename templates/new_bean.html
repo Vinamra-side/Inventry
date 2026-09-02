@@ -3,7 +3,7 @@
 {% block mobile_title %}New Bean{% endblock %}
 {% block content %}
   <section class="page-head"><div><div class="eyebrow">INVENTORY</div><h1>Add a bean type</h1><p class="subtitle">Create the catalog item once, then manage its stock from Inventory.</p></div></section>
-  <section class="panel form-panel narrow-form"><div class="panel-head"><div><div class="eyebrow">CATALOG ITEM</div><h2>Bean details</h2></div><div class="round-icon">✦</div></div>
+  <section class="panel form-panel narrow-form"><div class="panel-head"><div><div class="eyebrow">CATALOG ITEM</div><h2>Bean details</h2></div><div class="round-icon"></div></div>
     <form class="stacked" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="name">Bean name</label><input type="text" id="name" name="name" maxlength="120" placeholder="e.g. Ethiopia Yirgacheffe" required><label for="unit">Unit</label><select id="unit" name="unit"><option value="kg" selected>kg</option><option value="g">g</option><option value="lb">lb</option></select><label for="low_stock_threshold">Low stock warning threshold</label><input type="number" id="low_stock_threshold" name="low_stock_threshold" min="0" step="0.1" value="2"><p class="field-help">You'll be alerted on the dashboard when stock reaches this level.</p><div class="form-buttons"><button type="submit">Create bean <span>→</span></button><a class="button secondary" href="{{ url_for('dashboard') }}">Cancel</a></div></form>
   </section>
 {% endblock %}

@@ -53,7 +53,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="footer-brand-row"><div class="brand-hindi">सा·इ·को</div><button class="theme-toggle" type="button" aria-label="Toggle colour theme" title="Toggle colour theme" data-theme-toggle><span>☼</span><span class="visually-hidden" data-theme-label>Light mode</span></button></div>
+        <div class="footer-brand-row"><div class="brand-hindi">सा·इ·को</div><button class="theme-toggle" type="button" aria-label="Toggle colour theme" title="Toggle colour theme" data-theme-toggle><span></span><span class="visually-hidden" data-theme-label>Light mode</span></button></div>
       </div>
     </aside>
 
@@ -79,7 +79,7 @@
                 <span class="account-menu-icon" aria-hidden="true">◎</span><span>Login accounts</span>
               </a>
               <a href="{{ url_for('users') }}" role="menuitem" class="{{ 'active' if request.endpoint in ['users','remove_user'] }}">
-                <span class="account-menu-icon" aria-hidden="true">♙</span><span>Licensed users</span>
+                <span class="account-menu-icon" aria-hidden="true"></span><span>Licensed users</span>
               </a>
             </div>
             {% endif %}
@@ -105,19 +105,29 @@
         </details>
       </div>
       <header class="mobile-topbar">
+        <button class="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false" data-mobile-menu-toggle></button>
         <a href="{{ url_for('dashboard') }}" class="mobile-brand">
           <img src="{{ url_for('static', filename='saiko-logo-clean.png') }}" alt="SAIKO">
         </a>
         <span class="mobile-title">{% block mobile_title %}Workspace{% endblock %}</span>
         <button class="mobile-theme-toggle" type="button" aria-label="Toggle colour theme" data-theme-toggle>◐</button>
       </header>
+      <nav class="mobile-menu" aria-label="Mobile navigation" data-mobile-menu>
+        <a href="{{ url_for('dashboard') }}">Dashboard <span>→</span></a>
+        <a href="{{ url_for('inventory') }}">Inventory <span>→</span></a>
+        <a href="{{ url_for('orders') }}">Orders <span>→</span></a>
+        <a href="{{ url_for('deliveries') }}">Deliveries <span>→</span></a>
+        <a href="{{ url_for('insights') }}">Insights <span>→</span></a>
+        <a href="{{ url_for('stock_history') }}">Stock history <span>→</span></a>
+        <a href="{{ url_for('users') }}">Users <span>→</span></a>
+      </nav>
 
       <main class="content">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="flash-stack">
               {% for category, message in messages %}
-                <div class="flash {{ category }}"><span class="flash-mark">{{ '✓' if category == 'success' else '!' }}</span>{{ message }}</div>
+                <div class="flash {{ category }}"><span class="flash-mark">{{ '' if category == 'success' else '!' }}</span>{{ message }}</div>
               {% endfor %}
             </div>
           {% endif %}
@@ -134,14 +144,20 @@
       function update() {
         const dark = document.body.dataset.theme === 'dark';
         label.textContent = dark ? 'Light mode' : 'Dark mode';
-        document.querySelector('.theme-toggle span').textContent = dark ? '☼' : '◐';
-        document.querySelector('.mobile-theme-toggle').textContent = dark ? '☼' : '◐';
+        document.querySelector('.theme-toggle span').textContent = dark ? '' : '◐';
+        document.querySelector('.mobile-theme-toggle').textContent = dark ? '' : '◐';
       }
       buttons.forEach(function (button) { button.addEventListener('click', function () {
           document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
           localStorage.setItem('saiko-theme', document.body.dataset.theme); update();
       }); });
       update();
+      const menuToggle = document.querySelector('[data-mobile-menu-toggle]');
+      const mobileMenu = document.querySelector('[data-mobile-menu]');
+      menuToggle.addEventListener('click', function () {
+        const open = mobileMenu.classList.toggle('is-open');
+        menuToggle.setAttribute('aria-expanded', String(open));
+      });
     }());
   </script>
   <script>

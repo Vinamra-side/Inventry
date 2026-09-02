@@ -4,13 +4,18 @@
       let refreshing = false;
       navigator.serviceWorker.register("/service-worker.js").then(function (registration) {
         function showUpdate(worker) {
-          if (!worker || document.querySelector("[data-update-toast]")) return;
-          const toast = document.createElement("div");
-          toast.className = "update-toast";
-          toast.dataset.updateToast = "";
-          toast.innerHTML = '<div><strong>Saiko update available</strong><span>Reload to use the latest version.</span></div><button type="button">Update now</button>';
-          toast.querySelector("button").addEventListener("click", function () { worker.postMessage({type: "SKIP_WAITING"}); });
-          document.body.appendChild(toast);
+          if (!worker) return;
+          const badge = document.querySelector("[data-update-badge]");
+          const item = document.querySelector("[data-update-item]");
+          const empty = document.querySelector("[data-update-empty]");
+          const count = document.querySelector("[data-update-count]");
+          const apply = document.querySelector("[data-apply-update]");
+          if (!badge || !item || !apply) return;
+          badge.hidden = false;
+          item.hidden = false;
+          empty.hidden = true;
+          count.textContent = "1 new update";
+          apply.onclick = function () { worker.postMessage({type: "SKIP_WAITING"}); };
         }
         if (registration.waiting) showUpdate(registration.waiting);
         registration.addEventListener("updatefound", function () {

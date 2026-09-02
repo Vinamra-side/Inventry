@@ -59,6 +59,21 @@
 
     <div class="main-shell">
       <div class="workspace-actions">
+        <details class="notification-menu" data-notification-menu>
+          <summary class="notification-button" aria-label="Application update notifications" title="Application update notifications">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+            <span class="notification-badge" data-update-badge hidden>1</span>
+          </summary>
+          <div class="notification-panel">
+            <div class="notification-head"><strong>App updates</strong><span data-update-count>No new updates</span></div>
+            <div class="notification-empty" data-update-empty>Your application is up to date.</div>
+            <div class="update-notification" data-update-item hidden>
+              <strong>Saiko update available</strong>
+              <span>A new application version is ready.</span>
+              <button type="button" data-apply-update>Update now</button>
+            </div>
+          </div>
+        </details>
         <details class="profile-menu" data-profile-menu>
           <summary class="user-shortcut {{ 'active' if request.endpoint in ['users','remove_user','admin_accounts','admin_account_toggle'] }}" aria-label="Open account menu" title="Account menu">
             <span aria-hidden="true">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</span>
@@ -162,7 +177,7 @@
   </script>
   <script>
     document.addEventListener('click', function (event) {
-      document.querySelectorAll('details.profile-menu[open]').forEach(function (menu) {
+      document.querySelectorAll('details.profile-menu[open], details.notification-menu[open]').forEach(function (menu) {
         if (!menu.contains(event.target)) menu.removeAttribute('open');
       });
     });

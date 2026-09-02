@@ -109,6 +109,9 @@ def register_routes(app):
     @app.route("/service-worker.js")
     def service_worker():
         response = send_from_directory(app.static_folder, "service-worker.js", mimetype="application/javascript")
+        response.direct_passthrough = False
+        deployment = os.environ.get("VERCEL_GIT_COMMIT_SHA") or os.environ.get("VERCEL_DEPLOYMENT_ID") or "local"
+        response.set_data(response.get_data(as_text=True) + f"\n// deployment:{deployment}\n")
         response.headers["Cache-Control"] = "no-cache"
         response.headers["Service-Worker-Allowed"] = "/"
         return response

@@ -1,4 +1,4 @@
-const CACHE_NAME = "saiko-static-v1";
+const CACHE_NAME = "saiko-static-v2";
 const STATIC_ASSETS = [
   "/static/style.css",
   "/static/pwa.js",
@@ -11,7 +11,10 @@ const STATIC_ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
-  self.skipWaiting();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

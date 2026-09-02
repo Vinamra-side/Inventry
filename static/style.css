@@ -438,3 +438,5 @@ body[data-theme="dark"] .profile-menu .account-menu { box-shadow: 0 22px 60px rg
   .workspace-actions { top: 16px !important; right: 62px !important; }
   .profile-menu .account-menu { right: -46px !important; width: min(270px, calc(100vw - 28px)) !important; }
 }
+/* Installed-app update prompt */
+.update-toast{position:fixed;right:24px;bottom:24px;z-index:9999;display:flex;align-items:center;gap:22px;max-width:430px;padding:16px 18px;background:#171820;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.35);font-family:"DM Sans",sans-serif}.update-toast div{display:grid;gap:3px}.update-toast strong{font-size:14px}.update-toast span{font-size:12px;color:#b8bac4}.update-toast button{border:0;border-radius:10px;padding:10px 14px;background:#d94b9b;color:#fff;font-weight:700;white-space:nowrap;cursor:pointer}@media(max-width:600px){.update-toast{left:14px;right:14px;bottom:14px;max-width:none}}

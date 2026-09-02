@@ -20,11 +20,19 @@ jobs:
           $url = if ($env:CONFIGURED_URL) { $env:CONFIGURED_URL.TrimEnd('/') } else { 'https://saiko-inventory.vercel.app' }
           "APP_URL = `"$url`"" | Set-Content desktop_app/backend_config.py
       - run: python -m pip install -r desktop_app/requirements-build.txt
+      - name: Create Saiko application icon
+        run: python desktop_app/make_icon.py
       - name: Build EXE
         working-directory: desktop_app
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SaikoInventory app.py
+        run: >-
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name SaikoInventory --icon assets/saiko-icon.ico
+          --add-data "assets/saiko-icon.ico;assets" app.py
+      - name: Build C drive installer
+        working-directory: desktop_app
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
       - uses: actions/upload-artifact@v4
         with:
-          name: SaikoInventory-Windows
-          path: desktop_app/dist/SaikoInventory.exe
+          name: SaikoInventory-Windows-Setup
+          path: desktop_app/installer-output/SaikoInventorySetup.exe
           if-no-files-found: error

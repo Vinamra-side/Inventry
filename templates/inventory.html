@@ -4,7 +4,10 @@
 {% block content %}
   <section class="page-head">
     <div><div class="eyebrow">OPERATIONS</div><h1>Inventory</h1><p class="subtitle">Keep your bean stock accurate. Orders deduct automatically.</p></div>
-    <a class="button secondary" href="{{ url_for('new_bean') }}">＋ New bean type</a>
+    <div class="page-head-actions">
+      <a class="button secondary" href="{{ url_for('new_bean') }}">＋ Add new item</a>
+      {% if beans %}<button class="button secondary remove-mode-button" type="button" aria-pressed="false" data-remove-mode>− Remove item</button>{% endif %}
+    </div>
   </section>
 
   {% if beans %}
@@ -33,6 +36,10 @@
             <strong>{{ bean.name }}</strong>
             <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
             <div class="stock-meta">Warning at {{ "%.2f"|format(bean.low_stock_threshold) }} {{ bean.unit }}</div>
+            <form class="remove-bean-form" method="POST" action="{{ url_for('remove_bean_route', bean_id=bean.id) }}" data-remove-form hidden>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="remove-item-button" type="submit">Remove {{ bean.name }}</button>
+            </form>
           </div>
         {% endfor %}
       </div>
@@ -41,4 +48,25 @@
   {% else %}
     <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No beans in the catalog</strong><span>Create a bean type before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Create bean type</a></section>
   {% endif %}
+  <script>
+    (function () {
+      const toggle = document.querySelector('[data-remove-mode]');
+      if (!toggle) return;
+      const forms = document.querySelectorAll('[data-remove-form]');
+      toggle.addEventListener('click', function () {
+        const active = toggle.getAttribute('aria-pressed') !== 'true';
+        toggle.setAttribute('aria-pressed', String(active));
+        toggle.textContent = active ? 'Cancel removal' : '− Remove item';
+        forms.forEach(function (form) { form.hidden = !active; });
+      });
+      forms.forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          const name = form.closest('.stock-card').querySelector('strong').textContent.trim();
+          if (!window.confirm('Remove ' + name + ' and all of its stock and order history? This cannot be undone.')) {
+            event.preventDefault();
+          }
+        });
+      });
+    }());
+  </script>
 {% endblock %}

@@ -123,6 +123,27 @@ def add_bean(name, unit="kg", low_stock_threshold=2.0):
         release_connection(conn)
 
 
+def remove_bean(bean_id):
+    """Permanently remove a catalog item and its associated history."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (bean_id,))
+            bean = cur.fetchone()
+            if bean is None:
+                raise NotFoundError(f"No item found with id {bean_id}.")
+
+            # Remove dependent records in foreign-key order before the item.
+            cur.execute("DELETE FROM stock_movements WHERE bean_id = %s", (bean_id,))
+            cur.execute("DELETE FROM inventory_additions WHERE bean_id = %s", (bean_id,))
+            cur.execute("DELETE FROM orders WHERE bean_id = %s", (bean_id,))
+            cur.execute("DELETE FROM beans WHERE id = %s", (bean_id,))
+        conn.commit()
+        return bean
+    finally:
+        release_connection(conn)
+
+
 def add_inventory(bean_id, quantity, added_by=None, note=None):
     if quantity is None or not math.isfinite(float(quantity)) or quantity <= 0:
         raise InvalidQuantityError("Quantity to add must be greater than zero.")

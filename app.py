@@ -28,6 +28,7 @@ from services import (
     list_stock_history,
     list_subscribers,
     mark_order_delivered,
+    remove_bean,
     remove_subscriber,
 )
 
@@ -181,6 +182,16 @@ def register_routes(app):
             except ValueError as exc:
                 flash(str(exc), "error")
         return render_template("new_bean.html")
+
+    @app.route("/beans/<int:bean_id>/remove", methods=["POST"])
+    @login_required
+    def remove_bean_route(bean_id):
+        try:
+            bean = remove_bean(bean_id)
+            flash(f"Removed {bean['name']} from inventory.", "success")
+        except NotFoundError as exc:
+            flash(str(exc), "error")
+        return redirect(url_for("inventory"))
 
     # ---- Inventory ---------------------------------------------------
 

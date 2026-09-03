@@ -3,7 +3,7 @@
 {% block mobile_title %}Inventory{% endblock %}
 {% block content %}
   <section class="page-head">
-    <div><div class="eyebrow">OPERATIONS</div><h1>Inventory</h1><p class="subtitle">Keep your bean stock accurate. Orders deduct automatically.</p></div>
+    <div><div class="eyebrow">OPERATIONS</div><h1>Inventory</h1><p class="subtitle">Keep your item stock accurate. Orders deduct automatically.</p></div>
     <div class="page-head-actions">
       <a class="button secondary" href="{{ url_for('new_bean') }}">＋ Add new item</a>
       {% if beans %}<button class="button secondary remove-mode-button" type="button" aria-pressed="false" data-remove-mode>− Remove item</button>{% endif %}
@@ -16,11 +16,11 @@
       <div class="panel-head"><div><div class="eyebrow">RESTOCK</div><h2>Add stock</h2><p class="panel-copy">Increase stock when a new shipment arrives.</p></div><div class="round-icon">＋</div></div>
       <form class="stacked" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="bean_id">Bean</label>
+        <label for="bean_id">Item</label>
         <select id="bean_id" name="bean_id" required>
           {% for bean in beans %}<option value="{{ bean.id }}">{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available</option>{% endfor %}
         </select>
-        <div class="form-row"><div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div><div class="unit-hint">Unit follows the selected bean</div></div>
+        <div class="form-row"><div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div><div class="unit-hint">Unit follows the selected item</div></div>
         <label for="added_by">Added by <span>(optional)</span></label><input type="text" id="added_by" name="added_by" placeholder="Your name">
         <label for="note">Note <span>(optional)</span></label><input type="text" id="note" name="note" placeholder="e.g. new shipment from roaster">
         <button type="submit">Add stock <span>→</span></button>
@@ -28,7 +28,7 @@
     </section>
 
     <section class="panel">
-      <div class="panel-head"><div><div class="eyebrow">CATALOG</div><h2>Bean stock</h2></div><span class="count-pill">{{ beans|length }} types</span></div>
+      <div class="panel-head"><div><div class="eyebrow">CATALOG</div><h2>Item stock</h2></div><span class="count-pill">{{ beans|length }} items</span></div>
       <div class="stock-cards">
         {% for bean in beans %}
           <div class="stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
@@ -46,7 +46,7 @@
     </section>
   </div>
   {% else %}
-    <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No beans in the catalog</strong><span>Create a bean type before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Create bean type</a></section>
+    <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No items in the catalog</strong><span>Create an item before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Add item</a></section>
   {% endif %}
   <script>
     (function () {

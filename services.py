@@ -174,7 +174,7 @@ def add_inventory(bean_id, quantity, added_by=None, note=None):
             cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (bean_id,))
             bean = cur.fetchone()
             if bean is None:
-                raise NotFoundError(f"No bean found with id {bean_id}.")
+                raise NotFoundError(f"No item found with id {bean_id}.")
 
             cur.execute(
                 """

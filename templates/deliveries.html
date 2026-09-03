@@ -3,5 +3,30 @@
 {% block mobile_title %}Deliveries{% endblock %}
 {% block content %}
 <section class="page-head"><div><div class="eyebrow">FULFILMENT</div><h1>Deliveries</h1><p class="subtitle">Confirm each delivery manually once it is complete.</p></div></section>
-<section class="panel"><div class="panel-head"><div><div class="eyebrow">DELIVERY QUEUE</div><h2>Order deliveries</h2></div><span class="count-pill">{{ deliveries|length }} orders</span></div>{% if deliveries %}<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Bean</th><th>Quantity</th><th>Delivery date</th><th>Status</th><th></th></tr></thead><tbody>{% for order in deliveries %}<tr><td><strong>{{ order.customer_name }}</strong></td><td>{{ order.bean_name }}</td><td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td><td class="muted-cell">{{ order.delivery_date or 'Not scheduled' }}</td><td><span class="badge {{ 'ok' if order.status in ['delivered', 'fulfilled'] else 'low' }}">{{ 'Delivered' if order.status in ['delivered', 'fulfilled'] else 'Awaiting delivery' }}</span></td><td>{% if order.status == 'pending_delivery' %}<form method="POST" action="{{ url_for('complete_delivery', order_id=order.id) }}"><button type="submit" class="table-action">Mark delivered</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact"><div class="empty-icon"></div><strong>No deliveries to track</strong><span>New orders will appear here awaiting delivery.</span></div>{% endif %}</section>
+<section class="panel">
+  <div class="panel-head"><div><div class="eyebrow">DELIVERY QUEUE</div><h2>Order deliveries</h2></div><span class="count-pill">{{ deliveries|length }} orders</span></div>
+  {% if deliveries %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Customer</th><th>Item</th><th>Quantity</th><th>Status</th><th>Delivery</th></tr></thead>
+      <tbody>{% for order in deliveries %}<tr>
+        <td><strong>{{ order.customer_name }}</strong></td>
+        <td>{{ order.bean_name }}</td>
+        <td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td>
+        <td><span class="badge {{ 'ok' if order.status in ['delivered', 'fulfilled'] else 'low' }}">{{ 'Delivered' if order.status in ['delivered', 'fulfilled'] else 'Awaiting delivery' }}</span></td>
+        <td>
+          {% if order.status == 'pending_delivery' %}
+            <form method="POST" action="{{ url_for('complete_delivery', order_id=order.id) }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="table-action">Mark as delivered</button>
+            </form>
+          {% elif order.delivered_at %}
+            <span class="muted-cell">Delivered on {{ order.delivered_at.strftime("%d/%m/%Y") }}</span>
+          {% else %}
+            <span class="muted-cell">Delivered</span>
+          {% endif %}
+        </td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+  {% else %}<div class="empty-state compact"><div class="empty-icon"></div><strong>No deliveries to track</strong><span>New orders will appear here awaiting delivery.</span></div>{% endif %}
+</section>
 {% endblock %}

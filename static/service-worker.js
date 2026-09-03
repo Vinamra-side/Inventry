@@ -1,6 +1,6 @@
-const CACHE_NAME = "saiko-static-v6";
+const CACHE_NAME = "saiko-static-v8";
 const STATIC_ASSETS = [
-  "/static/style.css?v=6",
+  "/static/style.css?v=8",
   "/static/pwa.js?v=4",
   "/static/saiko-logo-clean.png",
   "/static/saiko-logo.png",
@@ -10,7 +10,11 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("message", (event) => {

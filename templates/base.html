@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='6') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='8') }}">
 </head>
 <body>
   <script>
@@ -75,13 +75,13 @@
           </div>
         </details>
         <details class="profile-menu" data-profile-menu>
-          <summary class="user-shortcut {{ 'active' if request.endpoint in ['users','remove_user','admin_accounts','admin_account_toggle'] }}" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false" title="Account menu">
+          <summary class="user-shortcut {{ 'active' if request.endpoint in ['users','remove_user','admin_accounts','admin_account_toggle'] }}" style="background:var(--logo-pink,#eb6cb1) !important" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false" title="Account menu">
             <span aria-hidden="true">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</span>
           </summary>
 
           <div class="account-menu" role="menu">
             <div class="account-menu-head">
-              <div class="account-avatar">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</div>
+              <div class="account-avatar" style="background:var(--logo-pink,#eb6cb1) !important">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</div>
               <div class="account-identity">
                 <strong>{{ session.get('display_name', session.get('username','User')) }}</strong>
                 <span>@{{ session.get('username','') }}{% if session.get('role') %} · {{ session.get('role')|title }}{% endif %}</span>

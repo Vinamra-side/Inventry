@@ -1,6 +1,6 @@
-const CACHE_NAME = "saiko-static-v15";
+const CACHE_NAME = "saiko-static-v16";
 const STATIC_ASSETS = [
-  "/static/style.css?v=15",
+  "/static/style.css?v=16",
   "/static/pwa.js?v=4",
   "/static/saiko-logo-clean.png",
   "/static/saiko-logo.png",

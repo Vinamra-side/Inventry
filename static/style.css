@@ -352,7 +352,7 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
 
 /* ===== Saiko profile menu robust fix (native <details>, no JS required to open) ===== */
 .workspace-actions {
-  position: fixed !important;
+  position: absolute !important;
   z-index: 9999 !important;
   top: 26px !important;
   right: 46px !important;

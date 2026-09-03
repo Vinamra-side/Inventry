@@ -334,7 +334,9 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
   z-index: 9999 !important;
   top: 26px !important;
   right: 46px !important;
-  display: block !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
 }
 .profile-menu {
   position: relative !important;
@@ -348,32 +350,34 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
 }
 .profile-menu .user-shortcut {
   box-sizing: border-box !important;
-  width: 46px !important;
-  height: 46px !important;
-  min-width: 46px !important;
-  min-height: 46px !important;
-  max-width: 46px !important;
-  max-height: 46px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
   padding: 0 !important;
   margin: 0 !important;
   display: grid !important;
   place-items: center !important;
-  border: 3px solid #9fd8ff !important;
+  border: 0 !important;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, var(--pink, #d94b9b), #9c2868) !important;
+  background: #70483d !important;
   color: #fff !important;
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: 19px !important;
-  font-weight: 800 !important;
+  font-family: "DM Sans", Arial, sans-serif !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
   line-height: 1 !important;
   cursor: pointer !important;
   user-select: none !important;
-  box-shadow: 0 8px 22px rgba(185,53,127,.28) !important;
+  box-shadow: none !important;
+  transition: background-color .16s ease, transform .16s ease !important;
 }
 .profile-menu[open] .user-shortcut,
 .profile-menu .user-shortcut:hover {
-  transform: scale(1.04);
-  box-shadow: 0 10px 28px rgba(185,53,127,.38) !important;
+  transform: none;
+  background: #82584c !important;
+  box-shadow: none !important;
 }
 .profile-menu .account-menu {
   position: absolute !important;
@@ -448,4 +452,4 @@ body[data-theme="dark"] .profile-menu .account-menu { box-shadow: 0 22px 60px rg
   .profile-menu .account-menu { right: -46px !important; width: min(270px, calc(100vw - 28px)) !important; }
 }
 /* Installed-app update prompt */
-.notification-menu{position:relative}.notification-menu>summary{list-style:none}.notification-menu>summary::-webkit-details-marker{display:none}.notification-button{position:relative;width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--card);cursor:pointer}.notification-button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.notification-badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--pink);color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center}.notification-panel{position:absolute;top:52px;right:0;width:320px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.2)}.notification-head{display:flex;justify-content:space-between;gap:12px;padding:4px 4px 12px;border-bottom:1px solid var(--border)}.notification-head span,.notification-empty,.update-notification span{font-size:11px;color:var(--muted)}.notification-empty{padding:20px 4px}.update-notification{display:grid;gap:7px;padding:16px 4px 4px}.update-notification button{justify-self:start;margin-top:5px;padding:9px 13px}.notification-menu [hidden]{display:none!important}
+.notification-menu{position:relative}.notification-menu>summary{list-style:none}.notification-menu>summary::-webkit-details-marker{display:none}.notification-button{box-sizing:border-box;position:relative;width:44px;height:44px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);box-shadow:none;cursor:pointer;transition:background-color .16s ease}.notification-button:hover,.notification-menu[open] .notification-button{background:rgba(127,127,127,.12)}.notification-button:focus-visible,.profile-menu .user-shortcut:focus-visible{outline:2px solid var(--ink);outline-offset:3px}.notification-button svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.notification-badge{position:absolute;top:0;right:0;min-width:16px;height:16px;padding:0 4px;border:2px solid var(--paper);border-radius:9px;background:var(--pink);color:#fff;font-size:9px;font-weight:800;line-height:12px;text-align:center}.notification-panel{position:absolute;top:54px;right:0;width:320px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.2)}.notification-head{display:flex;justify-content:space-between;gap:12px;padding:4px 4px 12px;border-bottom:1px solid var(--border)}.notification-head span,.notification-empty,.update-notification span{font-size:11px;color:var(--muted)}.notification-empty{padding:20px 4px}.update-notification{display:grid;gap:7px;padding:16px 4px 4px}.update-notification button{justify-self:start;margin-top:5px;padding:9px 13px}.notification-menu [hidden]{display:none!important}

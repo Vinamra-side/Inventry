@@ -60,11 +60,11 @@
     <div class="main-shell">
       <div class="workspace-actions">
         <details class="notification-menu" data-notification-menu>
-          <summary class="notification-button" aria-label="Application update notifications" title="Application update notifications">
+          <summary class="notification-button" aria-label="Application update notifications" aria-haspopup="true" aria-expanded="false" title="Application update notifications">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
             <span class="notification-badge" data-update-badge hidden>1</span>
           </summary>
-          <div class="notification-panel">
+          <div class="notification-panel" role="status" aria-live="polite">
             <div class="notification-head"><strong>App updates</strong><span data-update-count>No new updates</span></div>
             <div class="notification-empty" data-update-empty>Your application is up to date.</div>
             <div class="update-notification" data-update-item hidden>
@@ -75,7 +75,7 @@
           </div>
         </details>
         <details class="profile-menu" data-profile-menu>
-          <summary class="user-shortcut {{ 'active' if request.endpoint in ['users','remove_user','admin_accounts','admin_account_toggle'] }}" aria-label="Open account menu" title="Account menu">
+          <summary class="user-shortcut {{ 'active' if request.endpoint in ['users','remove_user','admin_accounts','admin_account_toggle'] }}" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false" title="Account menu">
             <span aria-hidden="true">{{ session.get('display_name', session.get('username','S'))[:1]|upper }}</span>
           </summary>
 
@@ -176,11 +176,30 @@
     }());
   </script>
   <script>
-    document.addEventListener('click', function (event) {
-      document.querySelectorAll('details.profile-menu[open], details.notification-menu[open]').forEach(function (menu) {
-        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    (function () {
+      const menus = document.querySelectorAll('details.profile-menu, details.notification-menu');
+      menus.forEach(function (menu) {
+        menu.addEventListener('toggle', function () {
+          const summary = menu.querySelector(':scope > summary');
+          summary.setAttribute('aria-expanded', String(menu.open));
+          if (menu.open) menus.forEach(function (other) {
+            if (other !== menu) other.removeAttribute('open');
+          });
+        });
       });
-    });
+      document.addEventListener('click', function (event) {
+        document.querySelectorAll('details.profile-menu[open], details.notification-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+        });
+      });
+      document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape') return;
+        const openMenu = document.querySelector('details.profile-menu[open], details.notification-menu[open]');
+        if (!openMenu) return;
+        openMenu.removeAttribute('open');
+        openMenu.querySelector(':scope > summary').focus();
+      });
+    }());
   </script>
   <script src="{{ url_for('static', filename='pwa.js') }}" defer></script>
 </body>

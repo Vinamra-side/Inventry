@@ -235,16 +235,21 @@ def register_routes(app):
         beans = list_beans()
         if request.method == "POST":
             try:
-                quantity = float(request.form["quantity"])
+                bean_ids = request.form.getlist("bean_id")
+                quantities = request.form.getlist("quantity")
+                if len(bean_ids) != len(quantities):
+                    raise ValueError("Each selected item needs a quantity.")
                 order = create_order(
-                    bean_id=int(request.form["bean_id"]),
                     customer_name=request.form["customer_name"],
-                    quantity=quantity,
+                    items=[
+                        {"bean_id": bean_id, "quantity": quantity}
+                        for bean_id, quantity in zip(bean_ids, quantities)
+                    ],
                     notes=request.form.get("notes") or None,
                 )
                 flash(
-                    f"Order recorded for {order['customer_name']}: "
-                    f"{float(order['quantity']):g} {order['bean_unit']} of {order['bean_name']}.",
+                    f"Order recorded for {order['customer_name']} with "
+                    f"{len(order['items'])} item{'s' if len(order['items']) != 1 else ''}.",
                     "success",
                 )
             except (InsufficientStockError, InvalidQuantityError, NotFoundError, ValueError) as exc:

@@ -10,8 +10,8 @@
       <thead><tr><th>Customer</th><th>Item</th><th>Quantity</th><th>Status</th><th>Delivery</th></tr></thead>
       <tbody>{% for order in deliveries %}<tr>
         <td><strong>{{ order.customer_name }}</strong></td>
-        <td>{{ order.bean_name }}</td>
-        <td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td>
+        <td><div class="order-items-list">{% for item in order['items'] %}<span>{{ item.name }}</span>{% endfor %}</div></td>
+        <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span>{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
         <td><span class="badge {{ 'ok' if order.status in ['delivered', 'fulfilled'] else 'low' }}">{{ 'Delivered' if order.status in ['delivered', 'fulfilled'] else 'Awaiting delivery' }}</span></td>
         <td>
           {% if order.status == 'pending_delivery' %}

@@ -9,10 +9,18 @@
     <div class="panel-head"><div><div class="eyebrow">NEW ORDER</div><h2>Record an order</h2></div><div class="round-icon">↗</div></div>
     <form class="order-form" method="POST">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div><label for="customer_name">Customer name</label><input type="text" id="customer_name" name="customer_name" maxlength="120" placeholder="e.g. Cafe Bloom" required></div>
-      <div><label for="bean_id">Bean</label><select id="bean_id" name="bean_id" required>{% for bean in beans %}<option value="{{ bean.id }}" {% if bean.current_stock <= 0 %}disabled{% endif %}>{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }}{% if bean.current_stock <= 0 %} — Out of stock{% endif %}</option>{% endfor %}</select></div>
-      <div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div>
-      <div class="wide"><label for="notes">Notes <span>(optional)</span></label><input type="text" id="notes" name="notes" maxlength="255" placeholder="Any delivery or order notes"></div>
+      <div class="order-customer"><label for="customer_name">Customer name</label><input type="text" id="customer_name" name="customer_name" maxlength="120" placeholder="e.g. Cafe Bloom" required></div>
+      <div class="order-lines-field">
+        <div class="order-lines-heading"><label>Items</label><button type="button" class="add-order-item" data-add-order-item>＋ Add item</button></div>
+        <div class="order-lines" data-order-lines>
+          <div class="order-line">
+            <select name="bean_id" aria-label="Item" required>{% for bean in beans %}<option value="{{ bean.id }}" {% if bean.current_stock <= 0 %}disabled{% endif %}>{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available{% if bean.current_stock <= 0 %} — Out of stock{% endif %}</option>{% endfor %}</select>
+            <input type="number" name="quantity" aria-label="Quantity" step="0.01" min="0.01" placeholder="Quantity" required>
+            <button type="button" class="remove-order-item" aria-label="Remove this item" data-remove-order-item>×</button>
+          </div>
+        </div>
+      </div>
+      <div class="order-notes-field"><label for="notes">Notes <span>(optional)</span></label><input type="text" id="notes" name="notes" maxlength="255" placeholder="Any delivery or order notes"></div>
       <div class="form-action"><button type="submit">Record order <span>→</span></button></div>
     </form>
   </section>
@@ -22,11 +30,11 @@
     <div class="panel-head"><div><div class="eyebrow">HISTORY</div><h2>Order history</h2></div><span class="count-pill">{{ orders|length }} orders</span></div>
     {% if orders %}
       <div class="table-wrap"><table>
-        <thead><tr><th>Customer</th><th>Bean</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <thead><tr><th>Customer</th><th>Items</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>
         <tbody>{% for order in orders %}<tr>
           <td><strong>{{ order.customer_name }}</strong></td>
-          <td>{{ order.bean_name }}</td>
-          <td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td>
+          <td><div class="order-items-list">{% for item in order['items'] %}<span>{{ item.name }}</span>{% endfor %}</div></td>
+          <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span>{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
           <td class="order-notes-cell">
             {% if order.notes %}
               {% if order.notes|length > 42 %}
@@ -42,4 +50,34 @@
     {% else %}<div class="empty-state compact"><div class="empty-icon">↗</div><strong>No orders recorded</strong><span>Your order history will show up here.</span></div>{% endif %}
     {% if page > 1 or has_next %}<nav class="pagination" aria-label="Order pages">{% if page > 1 %}<a class="button secondary" href="{{ url_for('orders', page=page-1) }}">← Previous</a>{% endif %}{% if has_next %}<a class="button secondary" href="{{ url_for('orders', page=page+1) }}">Next →</a>{% endif %}</nav>{% endif %}
   </section>
+  <script>
+    (function () {
+      const lines = document.querySelector('[data-order-lines]');
+      const addButton = document.querySelector('[data-add-order-item]');
+      if (!lines || !addButton) return;
+
+      function syncRemoveButtons() {
+        const buttons = lines.querySelectorAll('[data-remove-order-item]');
+        buttons.forEach(function (button) { button.disabled = buttons.length === 1; });
+      }
+
+      addButton.addEventListener('click', function () {
+        const line = lines.querySelector('.order-line').cloneNode(true);
+        line.querySelector('select').selectedIndex = 0;
+        line.querySelector('input').value = '';
+        lines.appendChild(line);
+        syncRemoveButtons();
+        line.querySelector('select').focus();
+      });
+
+      lines.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-remove-order-item]');
+        if (!button || button.disabled) return;
+        button.closest('.order-line').remove();
+        syncRemoveButtons();
+      });
+
+      syncRemoveButtons();
+    }());
+  </script>
 {% endblock %}

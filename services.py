@@ -44,6 +44,66 @@ ALLOWED_UNITS = {"kg", "g", "lb"}
 ALLOWED_ITEM_TYPES = {"coffee_beans", "instant_coffee", "decoction"}
 ALLOWED_BEAN_TYPES = {"green", "roasted"}
 PHONE_PATTERN = re.compile(r"^\+?[0-9][0-9 -]{6,19}$")
+_order_items_schema_ready = False
+
+
+def _ensure_order_items_schema(conn):
+    """Create/backfill line-item storage once per application process."""
+    global _order_items_schema_ready
+    if _order_items_schema_ready:
+        return
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS order_items (
+                id SERIAL PRIMARY KEY,
+                order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+                bean_id INTEGER NOT NULL REFERENCES beans(id),
+                quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
+                UNIQUE (order_id, bean_id)
+            )
+            """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_order_items_bean_id ON order_items(bean_id)")
+        cur.execute(
+            """
+            INSERT INTO order_items (order_id, bean_id, quantity)
+            SELECT id, bean_id, quantity FROM orders
+            ON CONFLICT (order_id, bean_id) DO NOTHING
+            """
+        )
+    conn.commit()
+    _order_items_schema_ready = True
+
+
+def _attach_order_items(cur, orders):
+    """Attach ordered item dictionaries and a concise display summary."""
+    if not orders:
+        return []
+    result = [dict(order) for order in orders]
+    order_map = {order["id"]: order for order in result}
+    for order in result:
+        order["items"] = []
+    cur.execute(
+        """
+        SELECT order_items.order_id, order_items.bean_id, order_items.quantity,
+               beans.name, beans.unit
+        FROM order_items
+        JOIN beans ON beans.id = order_items.bean_id
+        WHERE order_items.order_id = ANY(%s)
+        ORDER BY order_items.id ASC
+        """,
+        (list(order_map),),
+    )
+    for item in cur.fetchall():
+        order_map[item["order_id"]]["items"].append(dict(item))
+    for order in result:
+        order["item_summary"] = ", ".join(
+            f"{item['name']} · {float(item['quantity']):g} {item['unit']}"
+            for item in order["items"]
+        )
+    return result
 
 
 def _validate_text(value, label, max_length):
@@ -141,16 +201,24 @@ def remove_bean(bean_id):
     """Permanently remove a catalog item and its associated history."""
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (bean_id,))
             bean = cur.fetchone()
             if bean is None:
                 raise NotFoundError(f"No item found with id {bean_id}.")
 
-            # Remove dependent records in foreign-key order before the item.
+            # Orders containing this item are removed as complete records so a
+            # surviving order can never silently lose one of its line items.
+            cur.execute("SELECT DISTINCT order_id FROM order_items WHERE bean_id = %s", (bean_id,))
+            order_ids = [row["order_id"] for row in cur.fetchall()]
+            if order_ids:
+                cur.execute("DELETE FROM stock_movements WHERE order_id = ANY(%s)", (order_ids,))
+                cur.execute("DELETE FROM orders WHERE id = ANY(%s)", (order_ids,))
+
+            # Remove remaining dependent records in foreign-key order.
             cur.execute("DELETE FROM stock_movements WHERE bean_id = %s", (bean_id,))
             cur.execute("DELETE FROM inventory_additions WHERE bean_id = %s", (bean_id,))
-            cur.execute("DELETE FROM orders WHERE bean_id = %s", (bean_id,))
             cur.execute("DELETE FROM beans WHERE id = %s", (bean_id,))
         conn.commit()
         return bean
@@ -205,13 +273,27 @@ def add_inventory(bean_id, quantity, added_by=None, note=None):
         release_connection(conn)
 
 
-def create_order(bean_id, customer_name, quantity, notes=None, delivery_date=None):
-    if quantity is None or not math.isfinite(float(quantity)) or quantity <= 0:
-        raise InvalidQuantityError("Order quantity must be greater than zero.")
+def create_order(bean_id=None, customer_name=None, quantity=None, notes=None, delivery_date=None, items=None):
     customer_name = _validate_text(customer_name, "Customer name", 120)
     notes = (notes or "").strip() or None
     if notes and len(notes) > 255:
         raise ValueError("Notes must be 255 characters or fewer.")
+    if items is None:
+        items = [{"bean_id": bean_id, "quantity": quantity}]
+    if not items:
+        raise ValueError("Add at least one item to the order.")
+
+    # Combine duplicate selections into a single line and validate all values.
+    quantities = {}
+    for item in items:
+        try:
+            item_id = int(item.get("bean_id"))
+            item_quantity = float(item.get("quantity"))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise InvalidQuantityError("Each order item needs a valid quantity.") from exc
+        if not math.isfinite(item_quantity) or item_quantity <= 0:
+            raise InvalidQuantityError("Each order quantity must be greater than zero.")
+        quantities[item_id] = quantities.get(item_id, 0.0) + item_quantity
     if delivery_date:
         if isinstance(delivery_date, str):
             try:
@@ -223,20 +305,25 @@ def create_order(bean_id, customer_name, quantity, notes=None, delivery_date=Non
 
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
-            # FOR UPDATE locks this row until commit, so two simultaneous
-            # orders for the same bean cannot both pass the stock check
-            # and oversell it.
-            cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (bean_id,))
-            bean = cur.fetchone()
-            if bean is None:
-                raise NotFoundError(f"No bean found with id {bean_id}.")
+            # Lock in stable id order to prevent both overselling and deadlocks
+            # when concurrent orders contain several of the same items.
+            selected = []
+            for item_id in sorted(quantities):
+                cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (item_id,))
+                bean = cur.fetchone()
+                if bean is None:
+                    raise NotFoundError(f"No item found with id {item_id}.")
+                item_quantity = quantities[item_id]
+                if float(bean["current_stock"]) < item_quantity:
+                    raise InsufficientStockError(
+                        f"Only {bean['current_stock']} {bean['unit']} of {bean['name']} left, "
+                        f"cannot fulfil an order for {item_quantity:g} {bean['unit']}."
+                    )
+                selected.append((bean, item_quantity))
 
-            if float(bean["current_stock"]) < float(quantity):
-                raise InsufficientStockError(
-                    f"Only {bean['current_stock']} {bean['unit']} of {bean['name']} left, "
-                    f"cannot fulfil an order for {quantity} {bean['unit']}."
-                )
+            primary_bean, primary_quantity = selected[0]
 
             cur.execute(
                 """
@@ -244,26 +331,35 @@ def create_order(bean_id, customer_name, quantity, notes=None, delivery_date=Non
                 VALUES (%s, %s, %s, %s, 'pending_delivery', %s)
                 RETURNING *
                 """,
-                (bean_id, customer_name, quantity, notes, delivery_date),
+                (primary_bean["id"], customer_name, primary_quantity, notes, delivery_date),
             )
             order = cur.fetchone()
 
-            cur.execute(
-                """
-                INSERT INTO stock_movements (bean_id, delta, movement_type, reason, order_id)
-                VALUES (%s, %s, 'order', %s, %s)
-                """,
-                (bean_id, -quantity, notes or f"Order for {customer_name}", order["id"]),
-            )
-
-            cur.execute(
-                "UPDATE beans SET current_stock = current_stock - %s WHERE id = %s",
-                (quantity, bean_id),
-            )
+            for bean, item_quantity in selected:
+                cur.execute(
+                    "INSERT INTO order_items (order_id, bean_id, quantity) VALUES (%s, %s, %s)",
+                    (order["id"], bean["id"], item_quantity),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO stock_movements (bean_id, delta, movement_type, reason, order_id)
+                    VALUES (%s, %s, 'order', %s, %s)
+                    """,
+                    (bean["id"], -item_quantity, notes or f"Order for {customer_name}", order["id"]),
+                )
+                cur.execute(
+                    "UPDATE beans SET current_stock = current_stock - %s WHERE id = %s",
+                    (item_quantity, bean["id"]),
+                )
         conn.commit()
         order = dict(order)
-        order["bean_name"] = bean["name"]
-        order["bean_unit"] = bean["unit"]
+        order["items"] = [
+            {"bean_id": bean["id"], "name": bean["name"], "unit": bean["unit"], "quantity": item_quantity}
+            for bean, item_quantity in selected
+        ]
+        order["item_summary"] = ", ".join(
+            f"{item['name']} · {float(item['quantity']):g} {item['unit']}" for item in order["items"]
+        )
         return order
     finally:
         release_connection(conn)
@@ -272,6 +368,7 @@ def create_order(bean_id, customer_name, quantity, notes=None, delivery_date=Non
 def cancel_order(order_id):
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM orders WHERE id = %s FOR UPDATE", (order_id,))
             order = cur.fetchone()
@@ -284,9 +381,15 @@ def cancel_order(order_id):
                 raise ValueError("Only orders awaiting delivery can be cancelled.")
 
             cur.execute(
-                "UPDATE beans SET current_stock = current_stock + %s WHERE id = %s",
-                (order["quantity"], order["bean_id"]),
+                "SELECT bean_id, quantity FROM order_items WHERE order_id = %s ORDER BY bean_id FOR UPDATE",
+                (order_id,),
             )
+            order_items = cur.fetchall()
+            for item in order_items:
+                cur.execute(
+                    "UPDATE beans SET current_stock = current_stock + %s WHERE id = %s",
+                    (item["quantity"], item["bean_id"]),
+                )
             cur.execute(
                 """
                 UPDATE orders SET status = 'cancelled', cancelled_at = now()
@@ -296,13 +399,14 @@ def cancel_order(order_id):
                 (order_id,),
             )
             updated_order = cur.fetchone()
-            cur.execute(
-                """
-                INSERT INTO stock_movements (bean_id, delta, movement_type, reason, order_id)
-                VALUES (%s, %s, 'cancellation', %s, %s)
-                """,
-                (order["bean_id"], order["quantity"], "Cancelled order", order_id),
-            )
+            for item in order_items:
+                cur.execute(
+                    """
+                    INSERT INTO stock_movements (bean_id, delta, movement_type, reason, order_id)
+                    VALUES (%s, %s, 'cancellation', %s, %s)
+                    """,
+                    (item["bean_id"], item["quantity"], "Cancelled order", order_id),
+                )
         conn.commit()
         return updated_order
     finally:
@@ -314,18 +418,18 @@ def list_orders(limit=50, offset=0):
     offset = max(0, int(offset))
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT orders.*, beans.name AS bean_name, beans.unit AS bean_unit
+                SELECT orders.*
                 FROM orders
-                JOIN beans ON beans.id = orders.bean_id
                 ORDER BY orders.created_at DESC
                 LIMIT %s OFFSET %s
                 """,
                 (limit, offset),
             )
-            return cur.fetchall()
+            return _attach_order_items(cur, cur.fetchall())
     finally:
         release_connection(conn)
 
@@ -335,18 +439,19 @@ def list_deliveries(limit=101, offset=0):
     offset = max(0, int(offset))
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT orders.*, beans.name AS bean_name, beans.unit AS bean_unit
-                FROM orders JOIN beans ON beans.id = orders.bean_id
+                SELECT orders.*
+                FROM orders
                 WHERE orders.status IN ('pending_delivery', 'delivered', 'fulfilled')
                 ORDER BY orders.delivery_date NULLS LAST, orders.created_at DESC
                 LIMIT %s OFFSET %s
                 """,
                 (limit, offset),
             )
-            return cur.fetchall()
+            return _attach_order_items(cur, cur.fetchall())
     finally:
         release_connection(conn)
 
@@ -375,18 +480,18 @@ def mark_order_delivered(order_id):
 def list_todays_fulfilled_orders():
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT orders.*, beans.name AS bean_name, beans.unit AS bean_unit
+                SELECT orders.*
                 FROM orders
-                JOIN beans ON beans.id = orders.bean_id
                 WHERE orders.status IN ('fulfilled', 'delivered')
                   AND orders.created_at::date = CURRENT_DATE
                 ORDER BY orders.created_at ASC
                 """
             )
-            return cur.fetchall()
+            return _attach_order_items(cur, cur.fetchall())
     finally:
         release_connection(conn)
 

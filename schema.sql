@@ -44,6 +44,20 @@ CREATE TABLE IF NOT EXISTS orders (
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_date DATE;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 
+-- Line items allow one customer order to contain multiple catalog items.
+-- The legacy bean_id/quantity columns remain populated for compatibility.
+CREATE TABLE IF NOT EXISTS order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    bean_id INTEGER NOT NULL REFERENCES beans(id),
+    quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
+    UNIQUE (order_id, bean_id)
+);
+
+INSERT INTO order_items (order_id, bean_id, quantity)
+SELECT id, bean_id, quantity FROM orders
+ON CONFLICT (order_id, bean_id) DO NOTHING;
+
 -- A complete ledger makes additions, order deductions, and cancellations
 -- independently auditable without allowing a manual stock decrease.
 CREATE TABLE IF NOT EXISTS stock_movements (
@@ -68,6 +82,8 @@ CREATE TABLE IF NOT EXISTS subscribers (
 CREATE INDEX IF NOT EXISTS idx_inventory_additions_bean_id ON inventory_additions(bean_id);
 CREATE INDEX IF NOT EXISTS idx_orders_bean_id ON orders(bean_id);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_bean_id ON order_items(bean_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_bean_id ON stock_movements(bean_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at);
 

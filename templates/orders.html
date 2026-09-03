@@ -12,7 +12,6 @@
       <div><label for="customer_name">Customer name</label><input type="text" id="customer_name" name="customer_name" maxlength="120" placeholder="e.g. Cafe Bloom" required></div>
       <div><label for="bean_id">Bean</label><select id="bean_id" name="bean_id" required>{% for bean in beans %}<option value="{{ bean.id }}" {% if bean.current_stock <= 0 %}disabled{% endif %}>{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }}{% if bean.current_stock <= 0 %} — Out of stock{% endif %}</option>{% endfor %}</select></div>
       <div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div>
-      <div><label for="delivery_date">Delivery date <span>(optional)</span></label><input type="date" id="delivery_date" name="delivery_date"></div>
       <div class="wide"><label for="notes">Notes <span>(optional)</span></label><input type="text" id="notes" name="notes" maxlength="255" placeholder="Any delivery or order notes"></div>
       <div class="form-action"><button type="submit">Record order <span>→</span></button></div>
     </form>
@@ -21,7 +20,26 @@
 
   <section class="panel">
     <div class="panel-head"><div><div class="eyebrow">HISTORY</div><h2>Order history</h2></div><span class="count-pill">{{ orders|length }} orders</span></div>
-    {% if orders %}<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Bean</th><th>Quantity</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>{% for order in orders %}<tr><td><strong>{{ order.customer_name }}</strong></td><td>{{ order.bean_name }}</td><td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td><td><span class="badge {{ 'cancelled' if order.status == 'cancelled' else ('ok' if order.status in ['delivered','fulfilled'] else 'low') }}">{{ order.status|replace('_', ' ')|title }}</span></td><td class="muted-cell">{{ order.created_at.strftime("%d %b %Y · %H:%M") }}</td><td>{% if order.status == 'pending_delivery' %}<form method="POST" action="{{ url_for('cancel_order_route', order_id=order.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="table-action">Cancel</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact"><div class="empty-icon">↗</div><strong>No orders recorded</strong><span>Your order history will show up here.</span></div>{% endif %}
+    {% if orders %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Customer</th><th>Bean</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <tbody>{% for order in orders %}<tr>
+          <td><strong>{{ order.customer_name }}</strong></td>
+          <td>{{ order.bean_name }}</td>
+          <td class="number">{{ "%.2f"|format(order.quantity) }} {{ order.bean_unit }}</td>
+          <td class="order-notes-cell">
+            {% if order.notes %}
+              {% if order.notes|length > 42 %}
+                <details class="order-note"><summary aria-label="Show full note"><span>{{ order.notes[:42] }}</span><b aria-hidden="true">…</b></summary><div>{{ order.notes }}</div></details>
+              {% else %}<span class="muted-cell">{{ order.notes }}</span>{% endif %}
+            {% else %}<span class="muted-cell">—</span>{% endif %}
+          </td>
+          <td><span class="badge {{ 'cancelled' if order.status == 'cancelled' else ('ok' if order.status in ['delivered','fulfilled'] else 'low') }}">{{ order.status|replace('_', ' ')|title }}</span></td>
+          <td class="muted-cell">{{ order.created_at.strftime("%d %b %Y · %H:%M") }}</td>
+          <td>{% if order.status == 'pending_delivery' %}<form method="POST" action="{{ url_for('cancel_order_route', order_id=order.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="table-action">Cancel</button></form>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    {% else %}<div class="empty-state compact"><div class="empty-icon">↗</div><strong>No orders recorded</strong><span>Your order history will show up here.</span></div>{% endif %}
     {% if page > 1 or has_next %}<nav class="pagination" aria-label="Order pages">{% if page > 1 %}<a class="button secondary" href="{{ url_for('orders', page=page-1) }}">← Previous</a>{% endif %}{% if has_next %}<a class="button secondary" href="{{ url_for('orders', page=page+1) }}">Next →</a>{% endif %}</nav>{% endif %}
   </section>
 {% endblock %}

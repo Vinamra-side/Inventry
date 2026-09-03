@@ -241,7 +241,6 @@ def register_routes(app):
                     customer_name=request.form["customer_name"],
                     quantity=quantity,
                     notes=request.form.get("notes") or None,
-                    delivery_date=request.form.get("delivery_date") or None,
                 )
                 flash(
                     f"Order recorded for {order['customer_name']}: "

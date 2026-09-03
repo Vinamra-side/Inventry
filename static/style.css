@@ -148,6 +148,14 @@ tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: #fdf9fb; }
 .number { font-variant-numeric: tabular-nums; font-weight: 600; }
 .muted-cell { color: var(--muted); }
+.order-notes-cell { width: 220px; min-width: 180px; max-width: 260px; white-space: normal; color: var(--muted); }
+.order-note summary { display: flex; align-items: baseline; gap: 4px; list-style: none; cursor: pointer; }
+.order-note summary::-webkit-details-marker { display: none; }
+.order-note summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-note summary b { flex: 0 0 auto; color: var(--pink); font-size: 16px; line-height: 1; }
+.order-note[open] summary span { display: none; }
+.order-note[open] summary b::after { content: " Close"; font-size: 9px; font-weight: 700; }
+.order-note > div { margin-top: 7px; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere; }
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; font-size: 9px; font-weight: 800; }
 .badge span { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .badge.ok { background: var(--success-soft); color: var(--success); }

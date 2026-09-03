@@ -66,6 +66,15 @@ def _ensure_order_items_schema(conn):
         )
         cur.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_order_items_bean_id ON order_items(bean_id)")
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_source VARCHAR(30)")
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_id VARCHAR(120)")
+        cur.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_external_source_id
+            ON orders(external_source, external_id)
+            WHERE external_source IS NOT NULL AND external_id IS NOT NULL
+            """
+        )
         cur.execute(
             """
             INSERT INTO order_items (order_id, bean_id, quantity)
@@ -178,6 +187,7 @@ def add_bean(name, unit="kg", low_stock_threshold=2.0, item_type="coffee_beans",
             # migration step before the first new catalog item is added.
             cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans'")
             cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS bean_type VARCHAR(20)")
+            cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS zoho_item_id VARCHAR(120)")
             cur.execute("SELECT id FROM beans WHERE LOWER(name) = LOWER(%s)", (name,))
             if cur.fetchone():
                 raise ValueError(f"An item named '{name}' already exists.")
@@ -273,7 +283,16 @@ def add_inventory(bean_id, quantity, added_by=None, note=None):
         release_connection(conn)
 
 
-def create_order(bean_id=None, customer_name=None, quantity=None, notes=None, delivery_date=None, items=None):
+def create_order(
+    bean_id=None,
+    customer_name=None,
+    quantity=None,
+    notes=None,
+    delivery_date=None,
+    items=None,
+    external_source=None,
+    external_id=None,
+):
     customer_name = _validate_text(customer_name, "Customer name", 120)
     notes = (notes or "").strip() or None
     if notes and len(notes) > 255:
@@ -307,6 +326,24 @@ def create_order(bean_id=None, customer_name=None, quantity=None, notes=None, de
     try:
         _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
+            external_source = (external_source or "").strip() or None
+            external_id = (external_id or "").strip() or None
+            if external_source and external_id:
+                cur.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                    (f"{external_source}:{external_id}",),
+                )
+                cur.execute(
+                    "SELECT * FROM orders WHERE external_source = %s AND external_id = %s",
+                    (external_source, external_id),
+                )
+                existing = cur.fetchone()
+                if existing:
+                    existing_order = _attach_order_items(cur, [existing])[0]
+                    existing_order["created_from_external"] = False
+                    conn.commit()
+                    return existing_order
+
             # Lock in stable id order to prevent both overselling and deadlocks
             # when concurrent orders contain several of the same items.
             selected = []
@@ -327,11 +364,17 @@ def create_order(bean_id=None, customer_name=None, quantity=None, notes=None, de
 
             cur.execute(
                 """
-                INSERT INTO orders (bean_id, customer_name, quantity, notes, status, delivery_date)
-                VALUES (%s, %s, %s, %s, 'pending_delivery', %s)
+                INSERT INTO orders (
+                    bean_id, customer_name, quantity, notes, status, delivery_date,
+                    external_source, external_id
+                )
+                VALUES (%s, %s, %s, %s, 'pending_delivery', %s, %s, %s)
                 RETURNING *
                 """,
-                (primary_bean["id"], customer_name, primary_quantity, notes, delivery_date),
+                (
+                    primary_bean["id"], customer_name, primary_quantity, notes,
+                    delivery_date, external_source, external_id,
+                ),
             )
             order = cur.fetchone()
 
@@ -360,6 +403,7 @@ def create_order(bean_id=None, customer_name=None, quantity=None, notes=None, de
         order["item_summary"] = ", ".join(
             f"{item['name']} · {float(item['quantity']):g} {item['unit']}" for item in order["items"]
         )
+        order["created_from_external"] = True
         return order
     finally:
         release_connection(conn)

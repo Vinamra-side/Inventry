@@ -51,6 +51,18 @@ Recommended:
 - `BOOTSTRAP_ADMIN=false` after the first administrator has been created
 - `SESSION_COOKIE_SECURE=true`
 
+Required for Zoho invoice imports:
+
+- `ZOHO_CLIENT_ID`
+- `ZOHO_CLIENT_SECRET`
+- `ZOHO_REFRESH_TOKEN`
+- `ZOHO_ORGANIZATION_ID`
+- `ZOHO_WEBHOOK_SECRET`
+
+For an India Zoho account, keep the default `.in` account and API URLs from
+`.env.example`. For another Zoho data centre, set `ZOHO_ACCOUNTS_URL` and
+`ZOHO_API_BASE_URL` to the matching regional endpoints.
+
 Set the values in Vercel Project Settings → Environment Variables, then redeploy.
 
 This repository targets Vercel's Singapore region (`sin1`) so application code
@@ -71,6 +83,8 @@ After deployment, open the Vercel URL. Test:
 8. Open the native Windows licence application, sign in with the fixed owner credentials, and update Licence Control
 9. Disable a temporary login account and confirm its already-open session is rejected
 10. Confirm delivered orders do not offer or accept cancellation
+11. Send a Zoho invoice webhook and confirm that one order is created with all invoice line items
+12. Retry the same webhook and confirm it does not create a duplicate order
 
 ## Install as an app
 

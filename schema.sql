@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS beans (
     unit VARCHAR(20) NOT NULL DEFAULT 'kg',
     item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans',
     bean_type VARCHAR(20),
+    zoho_item_id VARCHAR(120),
     current_stock NUMERIC(10, 2) NOT NULL DEFAULT 0,
     low_stock_threshold NUMERIC(10, 2) NOT NULL DEFAULT 2,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS beans (
 
 ALTER TABLE beans ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans';
 ALTER TABLE beans ADD COLUMN IF NOT EXISTS bean_type VARCHAR(20);
+ALTER TABLE beans ADD COLUMN IF NOT EXISTS zoho_item_id VARCHAR(120);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_beans_zoho_item_id
+    ON beans(zoho_item_id) WHERE zoho_item_id IS NOT NULL;
 
 -- Immutable log of every stock increase. This is the only table that
 -- is allowed to raise a bean's stock.
@@ -37,12 +41,16 @@ CREATE TABLE IF NOT EXISTS orders (
     notes VARCHAR(255),
     delivery_date DATE,
     delivered_at TIMESTAMPTZ,
+    external_source VARCHAR(30),
+    external_id VARCHAR(120),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     cancelled_at TIMESTAMPTZ
 );
 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_date DATE;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_source VARCHAR(30);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_id VARCHAR(120);
 
 -- Line items allow one customer order to contain multiple catalog items.
 -- The legacy bean_id/quantity columns remain populated for compatibility.
@@ -82,6 +90,9 @@ CREATE TABLE IF NOT EXISTS subscribers (
 CREATE INDEX IF NOT EXISTS idx_inventory_additions_bean_id ON inventory_additions(bean_id);
 CREATE INDEX IF NOT EXISTS idx_orders_bean_id ON orders(bean_id);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_external_source_id
+    ON orders(external_source, external_id)
+    WHERE external_source IS NOT NULL AND external_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_bean_id ON order_items(bean_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_bean_id ON stock_movements(bean_id);

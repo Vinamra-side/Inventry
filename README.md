@@ -4,6 +4,9 @@ Flask inventory and order management application adapted for Vercel serverless h
 
 See **VERCEL_DEPLOYMENT.md** for the complete deployment procedure.
 
+See **ZOHO_INTEGRATION.md** to configure direct invoice-to-order imports from
+Zoho Inventory or Zoho Books.
+
 ### Architecture
 
 Browser → Vercel Python Function → Flask → External PostgreSQL

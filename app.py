@@ -2,13 +2,20 @@ import os
 import secrets
 from urllib.parse import urlsplit
 
-from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 from auth import LoginRateLimitError, admin_required, authenticate, create_user, ensure_bootstrap_admin, get_seat_status, list_app_users, login_required, set_user_active
 
 import db
 from config import Config
 from licensing_integration import bp as licensing_integration_blueprint
+from zoho_service import (
+    ZohoAPIError,
+    ZohoConfigurationError,
+    ZohoInvoiceError,
+    import_invoice,
+    verify_webhook_secret,
+)
 from services import (
     InsufficientStockError,
     InvalidQuantityError,
@@ -59,7 +66,7 @@ def create_app():
 
     @app.before_request
     def protect_post_requests():
-        if request.path.startswith("/api/licensing-integration/"):
+        if request.path.startswith("/api/licensing-integration/") or request.path.startswith("/api/integrations/zoho/"):
             return None
         if request.method != "POST":
             return None
@@ -74,7 +81,7 @@ def create_app():
         response.headers.setdefault("Referrer-Policy", "same-origin")
         if request.endpoint == "static" and response.status_code == 200:
             response.headers["Cache-Control"] = "public, max-age=86400"
-        if request.path.startswith("/api/licensing-integration/"):
+        if request.path.startswith("/api/licensing-integration/") or request.path.startswith("/api/integrations/zoho/"):
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -116,6 +123,33 @@ def register_routes(app):
         response.headers["Cache-Control"] = "no-cache"
         response.headers["Service-Worker-Allowed"] = "/"
         return response
+
+    @app.route("/api/integrations/zoho/invoices", methods=["POST"])
+    def zoho_invoice_webhook():
+        provided_secret = request.headers.get("X-Zoho-Webhook-Secret", "")
+        try:
+            if not verify_webhook_secret(provided_secret):
+                return jsonify({"ok": False, "error": "Unauthorized webhook."}), 401
+
+            payload = request.get_json(silent=True) or request.form.to_dict() or {}
+            invoice_data = payload.get("invoice") if isinstance(payload.get("invoice"), dict) else {}
+            invoice_id = payload.get("invoice_id") or invoice_data.get("invoice_id")
+            order = import_invoice(invoice_id)
+            created = bool(order.get("created_from_external"))
+            return jsonify(
+                {
+                    "ok": True,
+                    "created": created,
+                    "order_id": order["id"],
+                    "message": "Order created from Zoho invoice." if created else "Invoice already imported.",
+                }
+            ), 201 if created else 200
+        except ZohoConfigurationError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 503
+        except ZohoAPIError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 502
+        except (ZohoInvoiceError, InsufficientStockError, InvalidQuantityError, NotFoundError, ValueError) as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 422
 
 
     @app.route("/login", methods=["GET", "POST"])

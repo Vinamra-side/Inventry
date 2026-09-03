@@ -362,7 +362,7 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
   place-items: center !important;
   border: 0 !important;
   border-radius: 50% !important;
-  background: #70483d !important;
+  background: linear-gradient(135deg, var(--pink, #d94b9b), #b9357f) !important;
   color: #fff !important;
   font-family: "DM Sans", Arial, sans-serif !important;
   font-size: 20px !important;
@@ -376,7 +376,7 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
 .profile-menu[open] .user-shortcut,
 .profile-menu .user-shortcut:hover {
   transform: none;
-  background: #70483d !important;
+  background: linear-gradient(135deg, var(--pink, #d94b9b), #b9357f) !important;
   box-shadow: none !important;
 }
 .profile-menu .account-menu {
@@ -407,7 +407,7 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
   display: grid !important;
   place-items: center !important;
   border-radius: 50% !important;
-  background: #70483d !important;
+  background: linear-gradient(135deg, var(--pink, #d94b9b), #b9357f) !important;
   color: #fff !important;
   font-family: "Playfair Display", Georgia, serif !important;
   font-weight: 800 !important;

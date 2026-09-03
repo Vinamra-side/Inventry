@@ -27,23 +27,42 @@
       </form>
     </section>
 
-    <section class="panel">
-      <div class="panel-head"><div><div class="eyebrow">CATALOG</div><h2>Item stock</h2></div><span class="count-pill">{{ beans|length }} items</span></div>
-      <div class="stock-cards">
-        {% for bean in beans %}
-          <div class="stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
-            <div class="stock-card-top"><div class="bean-mark">{{ bean.name[:1]|upper }}</div><span class="badge {% if bean.current_stock <= 0 %}out{% elif bean.current_stock <= bean.low_stock_threshold %}low{% else %}ok{% endif %}">{% if bean.current_stock <= 0 %}Out of stock{% elif bean.current_stock <= bean.low_stock_threshold %}Low{% else %}Healthy{% endif %}</span></div>
-            <strong>{{ bean.name }}</strong>
-            <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
-            <div class="stock-meta">Warning at {{ "%.2f"|format(bean.low_stock_threshold) }} {{ bean.unit }}</div>
-            <form class="remove-bean-form" method="POST" action="{{ url_for('remove_bean_route', bean_id=bean.id) }}" data-remove-form hidden>
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="remove-item-button" type="submit">Remove {{ bean.name }}</button>
-            </form>
+    <div class="catalog-stack">
+      <section class="panel green-bean-panel">
+        <div class="panel-head"><div><div class="eyebrow">GREEN BEANS</div><h2>Green bean stock</h2></div><span class="count-pill">{{ green_beans|length }}</span></div>
+        {% if green_beans %}
+          <div class="stock-cards green-bean-cards">
+            {% for bean in green_beans %}
+              <div class="stock-card compact-stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
+                <div class="stock-card-top"><div class="bean-mark">{{ bean.name[:1]|upper }}</div><span class="badge {% if bean.current_stock <= 0 %}out{% elif bean.current_stock <= bean.low_stock_threshold %}low{% else %}ok{% endif %}">{% if bean.current_stock <= 0 %}Out{% elif bean.current_stock <= bean.low_stock_threshold %}Low{% else %}Healthy{% endif %}</span></div>
+                <strong>{{ bean.name }}</strong>
+                <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
+              </div>
+            {% endfor %}
           </div>
-        {% endfor %}
-      </div>
-    </section>
+        {% else %}
+          <p class="compact-catalog-empty">No green beans in the catalog.</p>
+        {% endif %}
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><div class="eyebrow">ALL ITEMS</div><h2>All item stock</h2></div><span class="count-pill">{{ beans|length }} items</span></div>
+        <div class="stock-cards">
+          {% for bean in beans %}
+            <div class="stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
+              <div class="stock-card-top"><div class="bean-mark">{{ bean.name[:1]|upper }}</div><span class="badge {% if bean.current_stock <= 0 %}out{% elif bean.current_stock <= bean.low_stock_threshold %}low{% else %}ok{% endif %}">{% if bean.current_stock <= 0 %}Out of stock{% elif bean.current_stock <= bean.low_stock_threshold %}Low{% else %}Healthy{% endif %}</span></div>
+              <strong>{{ bean.name }}</strong>
+              <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
+              <div class="stock-meta">Warning at {{ "%.2f"|format(bean.low_stock_threshold) }} {{ bean.unit }}</div>
+              <form class="remove-bean-form" method="POST" action="{{ url_for('remove_bean_route', bean_id=bean.id) }}" data-remove-form hidden>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="remove-item-button" type="submit">Remove {{ bean.name }}</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
   </div>
   {% else %}
     <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No items in the catalog</strong><span>Create an item before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Add item</a></section>

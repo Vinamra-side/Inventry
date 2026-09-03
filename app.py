@@ -201,6 +201,11 @@ def register_routes(app):
     @login_required
     def inventory():
         beans = list_beans()
+        green_beans = [
+            bean for bean in beans
+            if dict(bean).get("item_type") == "coffee_beans"
+            and dict(bean).get("bean_type") == "green"
+        ]
         if request.method == "POST":
             try:
                 quantity = float(request.form["quantity"])
@@ -220,7 +225,7 @@ def register_routes(app):
                 flash(str(exc), "error")
             return redirect(url_for("inventory"))
 
-        return render_template("inventory.html", beans=beans)
+        return render_template("inventory.html", beans=beans, green_beans=green_beans)
 
     # ---- Orders --------------------------------------------------------
 

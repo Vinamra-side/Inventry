@@ -185,7 +185,7 @@ form.stacked button { margin-top: 20px; width: 100%; }
 .form-buttons button, .form-buttons .button { margin-top: 0; width: auto; }
 .narrow-form { max-width: 620px; }
 
-.stock-cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.stock-cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
 .stock-card { border: 1px solid var(--border); border-radius: 15px; padding: 15px; transition: .2s ease; }
 .stock-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(46,24,39,.06); }
 .stock-card.is-low { border-color: #f1dfbd; background: #fffdfa; }
@@ -199,7 +199,7 @@ form.stacked button { margin-top: 20px; width: 100%; }
 .green-bean-panel { padding: 18px; }
 .green-bean-panel .panel-head { margin-bottom: 14px; }
 .green-bean-panel h2 { font-size: 19px; }
-.green-bean-cards { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 9px; }
+.green-bean-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 .compact-stock-card { padding: 11px; border-radius: 12px; }
 .compact-stock-card .stock-card-top { margin-bottom: 8px; }
 .compact-stock-card .bean-mark { width: 26px; height: 26px; border-radius: 8px; font-size: 10px; }

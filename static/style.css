@@ -376,7 +376,7 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
 .profile-menu[open] .user-shortcut,
 .profile-menu .user-shortcut:hover {
   transform: none;
-  background: #82584c !important;
+  background: #70483d !important;
   box-shadow: none !important;
 }
 .profile-menu .account-menu {
@@ -407,7 +407,7 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
   display: grid !important;
   place-items: center !important;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, var(--pink, #d94b9b), #8b355f) !important;
+  background: #70483d !important;
   color: #fff !important;
   font-family: "Playfair Display", Georgia, serif !important;
   font-weight: 800 !important;
@@ -417,7 +417,8 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
 .account-identity span { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; color: var(--muted) !important; font-size: 10px !important; }
 .account-menu-section { padding: 7px !important; border-top: 1px solid var(--border) !important; }
 .account-menu-section a,
-.account-menu-logout {
+.account-menu-logout,
+.install-app-button {
   box-sizing: border-box !important;
   width: 100% !important;
   min-height: 42px !important;
@@ -439,11 +440,16 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
 }
 .account-menu-section a:hover,
 .account-menu-section a.active,
-.account-menu-logout:hover {
+.account-menu-logout:hover,
+.install-app-button:hover {
   background: var(--pink-soft, rgba(217,75,155,.10)) !important;
   color: var(--pink-dark, #a42d72) !important;
 }
-.account-menu-icon { width: 20px !important; display: inline-grid !important; place-items: center !important; color: var(--muted) !important; }
+.account-menu-icon { width: 22px !important; height: 22px !important; flex: 0 0 22px !important; display: inline-grid !important; place-items: center !important; color: var(--muted) !important; }
+.account-menu-icon svg { width: 19px !important; height: 19px !important; fill: none !important; stroke: currentColor !important; stroke-width: 1.7 !important; stroke-linecap: round !important; stroke-linejoin: round !important; }
+.account-menu-section a > span:last-child,
+.account-menu-logout > span:last-child,
+.install-app-button > span:last-child { min-width: 0 !important; }
 .logout-form { margin: 0 !important; }
 body[data-theme="dark"] .profile-menu .account-menu { box-shadow: 0 22px 60px rgba(0,0,0,.46) !important; }
 

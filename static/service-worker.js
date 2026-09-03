@@ -1,7 +1,7 @@
-const CACHE_NAME = "saiko-static-v3";
+const CACHE_NAME = "saiko-static-v4";
 const STATIC_ASSETS = [
-  "/static/style.css",
-  "/static/pwa.js",
+  "/static/style.css?v=4",
+  "/static/pwa.js?v=4",
   "/static/saiko-logo-clean.png",
   "/static/saiko-logo.png",
   "/static/app-icon-192.png",
@@ -33,16 +33,13 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.startsWith("/static/")) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const fresh = fetch(event.request).then((response) => {
+      fetch(event.request).then((response) => {
           if (response.ok) {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
           return response;
-        });
-        return cached || fresh;
-      })
+        }).catch(() => caches.match(event.request))
     );
     return;
   }

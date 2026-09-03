@@ -41,6 +41,8 @@ class LicenseLimitError(Exception):
 
 
 ALLOWED_UNITS = {"kg", "g", "lb"}
+ALLOWED_ITEM_TYPES = {"coffee_beans", "instant_coffee", "decoction"}
+ALLOWED_BEAN_TYPES = {"green", "roasted"}
 PHONE_PATTERN = re.compile(r"^\+?[0-9][0-9 -]{6,19}$")
 
 
@@ -94,27 +96,39 @@ def get_bean(bean_id):
         release_connection(conn)
 
 
-def add_bean(name, unit="kg", low_stock_threshold=2.0):
-    name = _validate_text(name, "Bean name", 120)
+def add_bean(name, unit="kg", low_stock_threshold=2.0, item_type="coffee_beans", bean_type=None):
+    name = _validate_text(name, "Item name", 120)
     unit = (unit or "").strip()
     if unit not in ALLOWED_UNITS:
         raise ValueError("Unit must be kg, g, or lb.")
+    item_type = (item_type or "").strip()
+    if item_type not in ALLOWED_ITEM_TYPES:
+        raise ValueError("Select a valid item type.")
+    bean_type = (bean_type or "").strip() or None
+    if item_type == "coffee_beans" and bean_type not in ALLOWED_BEAN_TYPES:
+        raise ValueError("Select Green bean or Roasted bean.")
+    if item_type != "coffee_beans":
+        bean_type = None
     if not math.isfinite(float(low_stock_threshold)) or float(low_stock_threshold) < 0:
         raise ValueError("Low-stock threshold must be zero or greater.")
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # Keep existing deployments compatible without requiring a separate
+            # migration step before the first new catalog item is added.
+            cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans'")
+            cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS bean_type VARCHAR(20)")
             cur.execute("SELECT id FROM beans WHERE LOWER(name) = LOWER(%s)", (name,))
             if cur.fetchone():
-                raise ValueError(f"A bean named '{name}' already exists.")
+                raise ValueError(f"An item named '{name}' already exists.")
 
             cur.execute(
                 """
-                INSERT INTO beans (name, unit, low_stock_threshold)
-                VALUES (%s, %s, %s)
+                INSERT INTO beans (name, unit, low_stock_threshold, item_type, bean_type)
+                VALUES (%s, %s, %s, %s, %s)
                 RETURNING *
                 """,
-                (name, unit, low_stock_threshold),
+                (name, unit, low_stock_threshold, item_type, bean_type),
             )
             bean = cur.fetchone()
         conn.commit()

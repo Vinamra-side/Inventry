@@ -7,10 +7,15 @@ CREATE TABLE IF NOT EXISTS beans (
     id SERIAL PRIMARY KEY,
     name VARCHAR(120) UNIQUE NOT NULL,
     unit VARCHAR(20) NOT NULL DEFAULT 'kg',
+    item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans',
+    bean_type VARCHAR(20),
     current_stock NUMERIC(10, 2) NOT NULL DEFAULT 0,
     low_stock_threshold NUMERIC(10, 2) NOT NULL DEFAULT 2,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE beans ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans';
+ALTER TABLE beans ADD COLUMN IF NOT EXISTS bean_type VARCHAR(20);
 
 -- Immutable log of every stock increase. This is the only table that
 -- is allowed to raise a bean's stock.

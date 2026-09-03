@@ -176,9 +176,11 @@ def register_routes(app):
                     name=request.form["name"],
                     unit=request.form.get("unit", "kg"),
                     low_stock_threshold=float(request.form.get("low_stock_threshold") or 2.0),
+                    item_type=request.form.get("item_type", "coffee_beans"),
+                    bean_type=request.form.get("bean_type") or None,
                 )
-                flash(f"Added {request.form['name']} to the bean catalog.", "success")
-                return redirect(url_for("dashboard"))
+                flash(f"Added {request.form['name']} to the item catalog.", "success")
+                return redirect(url_for("inventory"))
             except ValueError as exc:
                 flash(str(exc), "error")
         return render_template("new_bean.html")

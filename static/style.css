@@ -170,6 +170,7 @@ tbody tr:hover { background: #fdf9fb; }
 .empty-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: var(--pink-soft); color: var(--pink-dark); font-size: 22px; margin-bottom: 3px; }
 
 .stacked { display: grid; gap: 0; }
+.stacked [hidden] { display: none !important; }
 form.stacked label, .order-form label { display: block; color: #655d63; font-size: 11px; font-weight: 700; margin: 14px 0 7px; }
 form.stacked label:first-child { margin-top: 0; }
 label span { color: #a69ca2; font-weight: 500; }

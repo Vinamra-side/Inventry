@@ -191,6 +191,9 @@ form.stacked button { margin-top: 20px; width: 100%; }
 .unit-hint { align-self: end; min-height: 44px; display: flex; align-items: center; color: #9b9197; font-size: 10px; padding: 0 4px; }
 .form-buttons { display: flex; gap: 9px; margin-top: 20px; }
 .form-buttons button, .form-buttons .button { margin-top: 0; width: auto; }
+.form-buttons > button, .form-buttons > .button { min-height: 44px; }
+/* Override the more specific stacked-form spacing without stretching Cancel. */
+form.stacked .form-buttons > button { margin-top: 0; width: auto; flex: 1; }
 .narrow-form { max-width: 620px; }
 
 .stock-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }

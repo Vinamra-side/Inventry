@@ -289,11 +289,13 @@ def add_inventory(bean_id, quantity, added_by=None, note=None):
 def roast_beans(green_id, roasted_id, quantity, recorded_by=None):
     """Atomically convert green stock to roasted stock at a fixed 85% yield.
 
-    Both catalog records must already exist and use the same unit. Each stock
+    An automatic destination is created/reused by name in the same transaction.
+    Both catalog records must use the same unit. Each stock
     change is recorded with one shared batch reference. No order is created.
     """
     try:
-        green_id, roasted_id = int(green_id), int(roasted_id)
+        green_id = int(green_id)
+        roasted_id = None if roasted_id in (None, "", "auto") else int(roasted_id)
         amount = Decimal(str(quantity))
     except (TypeError, ValueError, InvalidOperation) as exc:
         raise InvalidQuantityError("Select both beans and enter a valid quantity.") from exc
@@ -315,11 +317,32 @@ def roast_beans(green_id, roasted_id, quantity, recorded_by=None):
             # overspending stock and avoids two-item lock-order deadlocks.
             cur.execute("SELECT * FROM beans WHERE id IN (%s, %s) ORDER BY id FOR UPDATE", (green_id, roasted_id))
             rows = {row["id"]: row for row in cur.fetchall()}
-            if green_id not in rows or roasted_id not in rows:
+            if green_id not in rows or (roasted_id is not None and roasted_id not in rows):
                 raise NotFoundError("One of the selected beans no longer exists.")
-            green, roasted = rows[green_id], rows[roasted_id]
+            green = rows[green_id]
             if green.get("item_type") != "coffee_beans" or green.get("bean_type") != "green":
                 raise ValueError("The source must be a green coffee bean.")
+            if Decimal(str(green["current_stock"])) < amount:
+                raise InsufficientStockError("Not enough green bean stock for this roast.")
+            if roasted_id is None:
+                suffix = " (Roasted)"
+                name = green["name"] + suffix
+                if len(name) > 120:
+                    suffix = f" ({green_id} Roasted)"
+                    name = green["name"][:120 - len(suffix)] + suffix
+                # The unique name constraint arbitrates concurrent creation.
+                # Never relabel or overwrite an existing, incompatible item.
+                cur.execute("""INSERT INTO beans (name, unit, item_type, bean_type, low_stock_threshold)
+                               VALUES (%s, %s, 'coffee_beans', 'roasted', %s)
+                               ON CONFLICT (name) DO NOTHING""",
+                            (name, green["unit"], green.get("low_stock_threshold", 2)))
+                cur.execute("SELECT * FROM beans WHERE name = %s FOR UPDATE", (name,))
+                roasted = cur.fetchone()
+                if roasted is None:
+                    raise NotFoundError("Could not create the roasted counterpart. Please retry.")
+                roasted_id = roasted["id"]
+            else:
+                roasted = rows[roasted_id]
             if roasted.get("item_type") != "coffee_beans" or roasted.get("bean_type") != "roasted":
                 raise ValueError("The destination must be a roasted coffee bean.")
             if green["unit"] != roasted["unit"]:

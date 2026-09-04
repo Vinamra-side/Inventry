@@ -5,8 +5,11 @@ stock ledger's movement-type check to accept `roast_input` and `roast_output`.
 It does not alter existing stock quantities. No production migration has been
 run automatically.
 
-Create two coffee catalog items with distinct names: one classified Green bean,
-the other Roasted bean. In Inventory, use Add Roasted Beans below Add stock.
+Create a Green bean catalog item and add its stock. In Inventory, use Add Roasted Beans.
+The default Automatic destination creates or reuses `<green name> (Roasted)`
+in the same unit, within the stock transaction. Repeated roasts reuse that item.
+If that name belongs to an incompatible item, the roast is rejected without
+changing stock. You can also select an existing roasted destination manually.
 Select the source and its roasted counterpart, enter the green quantity, and
 submit. Both items must use exactly the same unit; unit conversion is rejected.
 

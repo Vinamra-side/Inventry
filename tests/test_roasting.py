@@ -78,6 +78,31 @@ class RoastingTests(unittest.TestCase):
     def test_output_rounding(self):
         self.assertEqual(service.roast_beans(1, 2, '1.10')['output'], Decimal('0.94'))
 
+    def test_automatic_destination_created_and_reused(self):
+        self.cur.fetchall.return_value = self.rows[:1]
+        self.cur.fetchone.return_value = dict(self.rows[1], name='Arabica green (Roasted)')
+        for _ in range(2):
+            result = service.roast_beans(1, 'auto', '85')
+            self.assertEqual(result['output'], Decimal('72.25'))
+            self.assertEqual(result['name'], 'Arabica green (Roasted)')
+        inserts = [c for c in self.cur.execute.call_args_list if 'INSERT INTO beans' in c.args[0]]
+        self.assertEqual(len(inserts), 2)
+        self.assertIn('ON CONFLICT (name) DO NOTHING', inserts[0].args[0])
+        self.assertEqual(inserts[0].args[1][:2], ('Arabica green (Roasted)', 'kg'))
+
+    def test_auto_name_conflict_rolls_back(self):
+        self.cur.fetchall.return_value = self.rows[:1]
+        self.cur.fetchone.return_value = dict(self.rows[1], item_type='herbal_teas')
+        with self.assertRaises(ValueError):
+            service.roast_beans(1, None, '10')
+        self.conn.commit.assert_not_called()
+        self.conn.rollback.assert_called_once()
+
+    def test_auto_not_created_without_stock(self):
+        with self.assertRaises(service.InsufficientStockError):
+            service.roast_beans(1, 'auto', '101')
+        self.assertFalse(any('INSERT' in c.args[0] for c in self.cur.execute.call_args_list))
+
     def test_write_failure_rolls_back(self):
         def fail(sql, args):
             if 'INSERT INTO stock_movements' in sql:

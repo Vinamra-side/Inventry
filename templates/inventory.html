@@ -41,7 +41,7 @@
         </select>
         <label for="roasted_id">Roasted bean destination</label>
         <select id="roasted_id" name="roasted_id" required>
-          {% if not roasted_beans %}<option value="">No roasted beans — add a roasted item first</option>{% endif %}
+          <option value="auto" selected>Automatic — create or reuse roasted counterpart</option>
           {% for bean in roasted_beans %}<option value="{{ bean.id }}" data-unit="{{ bean.unit }}">{{ bean.name }} · {{ bean.unit }}</option>{% endfor %}
         </select>
         <label for="green_quantity">Green quantity to roast</label>
@@ -51,10 +51,11 @@
         <label for="recorded_by">Roasted by <span>(optional)</span></label>
         <input id="recorded_by" name="recorded_by" maxlength="120" placeholder="Your name">
         </details>
-        <button type="submit" {% if not green_beans or not roasted_beans %}disabled{% endif %}>Add Roasted Beans <span>→</span></button>
+        <p class="field-help">Automatic uses “Green bean name (Roasted)” in the same unit and creates it if missing.</p>
+        <button type="submit" {% if not green_beans %}disabled{% endif %}>Add Roasted Beans <span>→</span></button>
       </form>
-      {% if not green_beans or not roasted_beans %}
-        <p class="field-help">Add the missing green or roasted catalog item to enable roasting. Both items must use the same unit. <a href="{{ url_for('new_bean') }}">Add item →</a></p>
+      {% if not green_beans %}
+        <p class="field-help">Add green stock to begin. The roasted item will be created automatically. <a href="{{ url_for('new_bean') }}">Add item →</a></p>
       {% endif %}
     </section>
     </div>
@@ -87,7 +88,7 @@
   {% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='inventory-ui/inventory.css', v='3') }}">
   <script type="module" src="{{ url_for('static', filename='inventory-ui/inventory.js', v='3') }}"></script>
-  <script src="{{ url_for('static', filename='roasting.js', v='2') }}" defer></script>
+  <script src="{{ url_for('static', filename='roasting.js', v='3') }}" defer></script>
   <script>
     (function () {
       const toggle = document.querySelector('[data-remove-mode]');

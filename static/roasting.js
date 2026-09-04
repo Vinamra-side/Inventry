@@ -8,7 +8,7 @@
   function update() {
     const missing = !source.value || !destination.value;
     const unit = source.selectedOptions[0]?.dataset.unit || '';
-    const targetUnit = destination.selectedOptions[0]?.dataset.unit;
+    const targetUnit = destination.value === 'auto' ? unit : destination.selectedOptions[0]?.dataset.unit;
     const mismatch = !missing && unit !== targetUnit;
     form.querySelector('button[type="submit"]').disabled = missing || mismatch;
     destination.setCustomValidity(mismatch ? 'Choose a roasted bean with the same unit as the green bean.' : '');

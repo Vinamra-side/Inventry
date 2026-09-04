@@ -36,6 +36,8 @@ const server = http.createServer((req, res) => {
     assert.equal(restockBox.y, roastBox.y, 'Both panels start at the same height');
     assert.ok(roastBox.y + roastBox.height < 720, 'Roast controls fit in the desktop viewport');
     await page.locator('#green_quantity').fill('100');
+    assert.equal(await page.locator('#roasted_id').inputValue(), 'auto');
+    assert.equal(await page.locator('[data-roast-form] button').isEnabled(), true);
     assert.match(await page.locator('[data-roast-preview]').textContent(), /100.00 kg green → 85.00 kg roasted/);
     await page.locator('#green_quantity').fill('1.10');
     assert.match(await page.locator('[data-roast-preview]').textContent(), /0.94 kg roasted/);

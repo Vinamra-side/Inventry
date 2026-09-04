@@ -28,28 +28,13 @@
     </section>
 
     <div class="catalog-stack">
-      <section class="panel green-bean-panel">
-        <div class="panel-head"><div><div class="eyebrow">GREEN BEANS</div><h2>Green bean stock</h2></div><span class="count-pill">{{ green_beans|length }}</span></div>
-        {% if green_beans %}
-          <div class="stock-cards green-bean-cards">
-            {% for bean in green_beans %}
-              <div class="stock-card compact-stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
-                <div class="stock-card-top"><div class="bean-mark">{{ bean.name[:1]|upper }}</div><span class="badge {% if bean.current_stock <= 0 %}out{% elif bean.current_stock <= bean.low_stock_threshold %}low{% else %}ok{% endif %}">{% if bean.current_stock <= 0 %}Out{% elif bean.current_stock <= bean.low_stock_threshold %}Low{% else %}Healthy{% endif %}</span></div>
-                <strong>{{ bean.name }}</strong>
-                <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <p class="compact-catalog-empty">No green beans in the catalog.</p>
-        {% endif %}
-      </section>
-
-      <section class="panel">
-        <div class="panel-head"><div><div class="eyebrow">ALL ITEMS</div><h2>All item stock</h2></div><span class="count-pill">{{ beans|length }} items</span></div>
+      <div id="inventory-category-tabs"></div>
+      <section class="panel" id="stock-catalog" role="tabpanel" tabindex="0" aria-label="All item stock">
+        <div class="panel-head"><div><div class="eyebrow">CATALOG</div><h2 data-catalog-title>All item stock</h2></div><span class="count-pill" data-catalog-count aria-live="polite">{{ beans|length }} items</span></div>
         <div class="stock-cards">
           {% for bean in beans %}
-            <div class="stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
+            {% set category = bean.item_type if bean.item_type in ['instant_coffee', 'decoction'] else ('green' if bean.bean_type == 'green' else 'roasted') %}
+            <div data-stock-category="{{ category }}" class="stock-card {% if bean.current_stock <= 0 %}is-out{% elif bean.current_stock <= bean.low_stock_threshold %}is-low{% endif %}">
               <div class="stock-card-top"><div class="bean-mark">{{ bean.name[:1]|upper }}</div><span class="badge {% if bean.current_stock <= 0 %}out{% elif bean.current_stock <= bean.low_stock_threshold %}low{% else %}ok{% endif %}">{% if bean.current_stock <= 0 %}Out of stock{% elif bean.current_stock <= bean.low_stock_threshold %}Low{% else %}Healthy{% endif %}</span></div>
               <strong>{{ bean.name }}</strong>
               <div class="stock-number">{{ "%.2f"|format(bean.current_stock) }} <small>{{ bean.unit }}</small></div>
@@ -61,12 +46,15 @@
             </div>
           {% endfor %}
         </div>
+        <p class="compact-catalog-empty" data-catalog-empty hidden></p>
       </section>
     </div>
   </div>
   {% else %}
     <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No items in the catalog</strong><span>Create an item before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Add item</a></section>
   {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='inventory-ui/inventory.css', v='1') }}">
+  <script type="module" src="{{ url_for('static', filename='inventory-ui/inventory.js', v='1') }}"></script>
   <script>
     (function () {
       const toggle = document.querySelector('[data-remove-mode]');

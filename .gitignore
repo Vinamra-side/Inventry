@@ -24,3 +24,7 @@ __pycache__/
 
 # Logs
 *.log
+
+# Frontend dependencies (compiled assets are committed for Flask/Vercel)
+node_modules/
+.pnpm-store/

@@ -1,0 +1,21 @@
+/* No Tailwind preflight: the existing Flask forms retain their current styles. */
+@layer theme, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@source "../components";
+@source "./inventory.tsx";
+
+.slide-tabs { border: 1px solid var(--border); background: var(--card); }
+.slide-tabs .slide-tab {
+  display: block; border: 0; margin: 0; min-width: 0; width: auto;
+  background: transparent; box-shadow: none; transform: none;
+  color: white; mix-blend-mode: difference; cursor: pointer;
+  line-height: 1.4; letter-spacing: 0; transition: none;
+}
+.slide-tab-cursor { background: var(--ink); }
+.slide-tabs .slide-tab:focus-visible { outline: 2px solid var(--logo-pink); outline-offset: -3px; }
+.stock-tabs-scroll { padding: 4px 0 12px; }
+#inventory-category-tabs { min-width: 0; }
+#stock-catalog [hidden] { display: none !important; }
+#stock-catalog[data-category="green"] .stock-card { padding: 14px; }
+#stock-catalog[data-category="green"] .stock-number { font-size: 25px; margin-top: 14px; }

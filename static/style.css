@@ -132,6 +132,14 @@ h2 { margin: 0; font-family: "Playfair Display", Georgia, serif; font-size: 23px
 .content-grid.two-thirds { grid-template-columns: minmax(0, 1.65fr) minmax(320px, .95fr); }
 .inventory-layout { grid-template-columns: minmax(320px, .82fr) minmax(0, 1.55fr); align-items: start; }
 .catalog-stack { display: grid; gap: 16px; min-width: 0; }
+.inventory-forms { display: grid; gap: 16px; min-width: 0; }
+.restock-panel { padding: 18px; }
+.restock-panel .panel-head { margin-bottom: 12px; }
+.restock-panel h2, .roasting-panel h2 { font-size: 23px; }
+.restock-panel form.stacked label { margin-top: 10px; }
+.restock-panel form.stacked input, .restock-panel form.stacked select { min-height: 40px; }
+.restock-panel form.stacked button { margin-top: 14px; }
+.roast-preview { display: block; margin-top: 12px; padding: 12px; border-radius: 11px; background: var(--pink-soft); color: var(--ink); font-size: 12px; line-height: 1.5; }
 .subscribers-layout { grid-template-columns: minmax(300px, .8fr) minmax(0, 1.35fr); align-items: start; }
 .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 23px; min-width: 0; }
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }

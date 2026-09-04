@@ -72,12 +72,17 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     id SERIAL PRIMARY KEY,
     bean_id INTEGER NOT NULL REFERENCES beans(id),
     delta NUMERIC(10, 2) NOT NULL,
-    movement_type VARCHAR(20) NOT NULL CHECK (movement_type IN ('addition', 'order', 'cancellation')),
+    movement_type VARCHAR(20) NOT NULL CHECK (movement_type IN ('addition', 'order', 'cancellation', 'roast_input', 'roast_output')),
     reason VARCHAR(255),
     recorded_by VARCHAR(120),
     order_id INTEGER REFERENCES orders(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Upgrade existing installations before using the roasting form.
+ALTER TABLE stock_movements DROP CONSTRAINT IF EXISTS stock_movements_movement_type_check;
+ALTER TABLE stock_movements ADD CONSTRAINT stock_movements_movement_type_check
+    CHECK (movement_type IN ('addition', 'order', 'cancellation', 'roast_input', 'roast_output'));
 
 CREATE TABLE IF NOT EXISTS subscribers (
     id SERIAL PRIMARY KEY,

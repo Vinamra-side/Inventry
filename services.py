@@ -4,9 +4,10 @@ Business logic layer.
 All stock-changing operations go through this module so the rules stay
 enforced in one place instead of being re-implemented in every route:
 
-- add_inventory(): the only way stock increases.
-- create_order(): the only way stock decreases, and only automatically,
-  as a side effect of recording an order. Fails cleanly if there is
+- add_inventory(): records stock received from an external shipment.
+- roast_beans(): converts green stock into roasted stock at an 85% yield.
+- create_order(): deducts stock automatically when recording an order.
+  Fails cleanly if there is
   not enough stock for the requested bean.
 - cancel_order(): reverses a specific order's deduction. This is not a
   manual stock edit, it is undoing an automatic one, and keeps stock
@@ -20,6 +21,8 @@ never end up out of sync if something fails partway through.
 import math
 import re
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from uuid import uuid4
 
 from db import get_connection, release_connection
 
@@ -279,6 +282,65 @@ def add_inventory(bean_id, quantity, added_by=None, note=None):
             updated_bean = cur.fetchone()
         conn.commit()
         return updated_bean
+    finally:
+        release_connection(conn)
+
+
+def roast_beans(green_id, roasted_id, quantity, recorded_by=None):
+    """Atomically convert green stock to roasted stock at a fixed 85% yield.
+
+    Both catalog records must already exist and use the same unit. Each stock
+    change is recorded with one shared batch reference. No order is created.
+    """
+    try:
+        green_id, roasted_id = int(green_id), int(roasted_id)
+        amount = Decimal(str(quantity))
+    except (TypeError, ValueError, InvalidOperation) as exc:
+        raise InvalidQuantityError("Select both beans and enter a valid quantity.") from exc
+    if not amount.is_finite() or amount <= 0 or amount > Decimal("99999999.99"):
+        raise InvalidQuantityError("Green bean quantity must be positive and within the stock limit.")
+    if amount != amount.quantize(Decimal("0.01")):
+        raise InvalidQuantityError("Use at most two decimal places for the quantity.")
+    output = (amount * Decimal("0.85")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if green_id == roasted_id:
+        raise ValueError("Choose different green and roasted catalog items.")
+    recorded_by = (recorded_by or "").strip() or None
+    if recorded_by and len(recorded_by) > 120:
+        raise ValueError("Recorded by must be 120 characters or fewer.")
+    batch = str(uuid4())
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # Consistent lock ordering prevents concurrent roasts/orders from
+            # overspending stock and avoids two-item lock-order deadlocks.
+            cur.execute("SELECT * FROM beans WHERE id IN (%s, %s) ORDER BY id FOR UPDATE", (green_id, roasted_id))
+            rows = {row["id"]: row for row in cur.fetchall()}
+            if green_id not in rows or roasted_id not in rows:
+                raise NotFoundError("One of the selected beans no longer exists.")
+            green, roasted = rows[green_id], rows[roasted_id]
+            if green.get("item_type") != "coffee_beans" or green.get("bean_type") != "green":
+                raise ValueError("The source must be a green coffee bean.")
+            if roasted.get("item_type") != "coffee_beans" or roasted.get("bean_type") != "roasted":
+                raise ValueError("The destination must be a roasted coffee bean.")
+            if green["unit"] != roasted["unit"]:
+                raise ValueError("Green and roasted beans must use the same unit. No unit conversion is applied.")
+            if Decimal(str(green["current_stock"])) < amount:
+                raise InsufficientStockError("Not enough green bean stock for this roast.")
+            if Decimal(str(roasted["current_stock"])) + output > Decimal("99999999.99"):
+                raise InvalidQuantityError("The roasted stock would exceed the stock limit.")
+            reason = f"Roast {batch}: {amount} {green['unit']} green → {output} {green['unit']} roasted (15% loss)"
+            cur.execute("UPDATE beans SET current_stock = current_stock - %s WHERE id = %s", (amount, green_id))
+            cur.execute("UPDATE beans SET current_stock = current_stock + %s WHERE id = %s", (output, roasted_id))
+            cur.execute("INSERT INTO inventory_additions (bean_id, quantity, added_by, note) VALUES (%s, %s, %s, %s)",
+                        (roasted_id, output, recorded_by, reason))
+            for item_id, delta, kind in ((green_id, -amount, "roast_input"), (roasted_id, output, "roast_output")):
+                cur.execute("INSERT INTO stock_movements (bean_id, delta, movement_type, reason, recorded_by) VALUES (%s, %s, %s, %s, %s)",
+                            (item_id, delta, kind, reason, recorded_by))
+        conn.commit()
+        return {"input": amount, "output": output, "unit": green["unit"], "name": roasted["name"], "batch": batch}
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         release_connection(conn)
 
@@ -619,7 +681,7 @@ def list_stock_history(sku=None, movement_type=None, limit=101, offset=0):
         if sku:
             clauses.append("LOWER(beans.name) LIKE LOWER(%s)")
             params.append(f"%{sku.strip()}%")
-        if movement_type in ("addition", "order", "cancellation"):
+        if movement_type in ("addition", "order", "cancellation", "roast_input", "roast_output"):
             clauses.append("stock_movements.movement_type = %s")
             params.append(movement_type)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""

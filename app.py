@@ -23,6 +23,7 @@ from services import (
     NotFoundError,
     add_bean,
     add_inventory,
+    roast_beans,
     add_subscriber,
     cancel_order,
     create_order,
@@ -259,7 +260,21 @@ def register_routes(app):
                 flash(str(exc), "error")
             return redirect(url_for("inventory"))
 
-        return render_template("inventory.html", beans=beans, green_beans=green_beans)
+        roasted_beans = [bean for bean in beans if dict(bean).get("item_type") == "coffee_beans" and dict(bean).get("bean_type") == "roasted"]
+        return render_template("inventory.html", beans=beans, green_beans=green_beans, roasted_beans=roasted_beans)
+
+    @app.route("/inventory/roast", methods=["POST"])
+    @login_required
+    def roast_inventory():
+        try:
+            result = roast_beans(
+                request.form.get("green_id"), request.form.get("roasted_id"),
+                request.form.get("green_quantity"), request.form.get("recorded_by"),
+            )
+            flash(f"Roasted {result['input']} {result['unit']} green beans into {result['output']} {result['unit']} of {result['name']} (15% loss).", "success")
+        except (InvalidQuantityError, InsufficientStockError, NotFoundError, ValueError) as exc:
+            flash(str(exc), "error")
+        return redirect(url_for("inventory"))
 
     # ---- Orders --------------------------------------------------------
 

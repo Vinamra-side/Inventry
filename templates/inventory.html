@@ -22,36 +22,39 @@
           {% for bean in beans %}<option value="{{ bean.id }}">{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available</option>{% endfor %}
         </select>
         <div class="form-row"><div><label for="quantity">Quantity</label><input type="number" id="quantity" name="quantity" step="0.01" min="0.01" placeholder="0.00" required></div><div class="unit-hint">Unit follows the selected item</div></div>
+        <details class="stock-optional"><summary>Additional details (optional)</summary>
         <label for="added_by">Added by <span>(optional)</span></label><input type="text" id="added_by" name="added_by" placeholder="Your name">
         <label for="note">Note <span>(optional)</span></label><input type="text" id="note" name="note" placeholder="e.g. new shipment from roaster">
+        </details>
         <button type="submit">Add stock <span>→</span></button>
       </form>
     </section>
 
     <section class="panel form-panel roasting-panel">
       <div class="panel-head"><div><div class="eyebrow">ROASTING</div><h2>Add Roasted Beans</h2><p class="panel-copy">Convert green beans into roasted stock with 15% roasting loss.</p></div></div>
-      {% if green_beans and roasted_beans %}
       <form class="stacked" method="POST" action="{{ url_for('roast_inventory') }}" data-roast-form>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="green_id">Green bean source</label>
+        <label for="green_id">Bean (green stock)</label>
         <select id="green_id" name="green_id" required>
+          {% if not green_beans %}<option value="">No green beans — add a green bean first</option>{% endif %}
           {% for bean in green_beans %}<option value="{{ bean.id }}" data-unit="{{ bean.unit }}">{{ bean.name }} · {{ '%.2f'|format(bean.current_stock) }} {{ bean.unit }} available</option>{% endfor %}
         </select>
         <label for="roasted_id">Roasted bean destination</label>
         <select id="roasted_id" name="roasted_id" required>
+          {% if not roasted_beans %}<option value="">No roasted beans — add a roasted item first</option>{% endif %}
           {% for bean in roasted_beans %}<option value="{{ bean.id }}" data-unit="{{ bean.unit }}">{{ bean.name }} · {{ bean.unit }}</option>{% endfor %}
         </select>
-        <p class="field-help">Select the roasted counterpart of your green bean. Both items must use the same unit.</p>
         <label for="green_quantity">Green quantity to roast</label>
         <input id="green_quantity" name="green_quantity" type="number" min="0.01" max="99999999.99" step="0.01" placeholder="100.00" required>
         <output class="roast-preview" for="green_quantity green_id roasted_id" aria-live="polite" data-roast-preview>100 kg green → 85 kg roasted · 15% loss</output>
+        <details class="stock-optional"><summary>Roasted by (optional)</summary>
         <label for="recorded_by">Roasted by <span>(optional)</span></label>
         <input id="recorded_by" name="recorded_by" maxlength="120" placeholder="Your name">
-        <button type="submit">Add Roasted Beans <span>→</span></button>
+        </details>
+        <button type="submit" {% if not green_beans or not roasted_beans %}disabled{% endif %}>Add Roasted Beans <span>→</span></button>
       </form>
-      {% else %}
-        <p class="panel-copy">Create a green bean and its roasted counterpart in the catalog to start roasting.</p>
-        <a class="button secondary" href="{{ url_for('new_bean') }}">Add item</a>
+      {% if not green_beans or not roasted_beans %}
+        <p class="field-help">Add the missing green or roasted catalog item to enable roasting. Both items must use the same unit. <a href="{{ url_for('new_bean') }}">Add item →</a></p>
       {% endif %}
     </section>
     </div>
@@ -84,7 +87,7 @@
   {% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='inventory-ui/inventory.css', v='3') }}">
   <script type="module" src="{{ url_for('static', filename='inventory-ui/inventory.js', v='3') }}"></script>
-  <script src="{{ url_for('static', filename='roasting.js', v='1') }}" defer></script>
+  <script src="{{ url_for('static', filename='roasting.js', v='2') }}" defer></script>
   <script>
     (function () {
       const toggle = document.querySelector('[data-remove-mode]');

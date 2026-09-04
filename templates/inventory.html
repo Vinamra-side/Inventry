@@ -53,8 +53,8 @@
   {% else %}
     <section class="panel empty-state"><div class="empty-icon">▦</div><strong>No items in the catalog</strong><span>Create an item before adding stock.</span><a class="button" href="{{ url_for('new_bean') }}">Add item</a></section>
   {% endif %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='inventory-ui/inventory.css', v='2') }}">
-  <script type="module" src="{{ url_for('static', filename='inventory-ui/inventory.js', v='2') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='inventory-ui/inventory.css', v='3') }}">
+  <script type="module" src="{{ url_for('static', filename='inventory-ui/inventory.js', v='3') }}"></script>
   <script>
     (function () {
       const toggle = document.querySelector('[data-remove-mode]');

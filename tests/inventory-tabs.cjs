@@ -30,6 +30,7 @@ const server = http.createServer((req, res) => {
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     const tabs = page.getByRole('tab');
     await tabs.first().waitFor();
+    assert.equal(await page.locator('.slide-tab-cursor').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(235, 108, 177)');
     await page.waitForFunction(() => document.querySelector('[data-catalog-count]').textContent === '2 items');
     assert.equal(await page.locator('[data-stock-category]:visible').count(), 2);
     await tabs.nth(1).click();
@@ -48,6 +49,7 @@ const server = http.createServer((req, res) => {
     await tabs.nth(3).press('Home');
     await page.waitForFunction(() => document.querySelector('#stock-catalog').dataset.category === 'green');
     await tabs.nth(2).hover();
+    assert.equal(await tabs.nth(2).getAttribute('data-highlighted'), 'true');
     assert.equal(await tabs.nth(0).getAttribute('aria-selected'), 'true');
     await page.mouse.move(5, 5);
     // No global Tailwind reset or filtering should unhide removal forms.
@@ -60,6 +62,7 @@ const server = http.createServer((req, res) => {
     await tabs.first().click();
     assert.equal(await page.locator('[data-stock-category]:visible').count(), 2);
     await page.mouse.move(1, 1);
+    assert.equal(await page.locator('.slide-tab-cursor').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(235, 108, 177)');
     await page.waitForFunction(() => {
       const selected = document.querySelector('[role="tab"][aria-selected="true"]').getBoundingClientRect();
       const cursor = document.querySelector('.slide-tab-cursor').getBoundingClientRect();

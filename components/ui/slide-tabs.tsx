@@ -22,6 +22,7 @@ type Props = {
 export function SlideTabs({ tabs = stockTabs, value, onValueChange, panelId }: Props) {
   const [internalValue, setInternalValue] = useState<string>(tabs[0]?.id ?? "");
   const selected = value ?? internalValue;
+  const [highlighted, setHighlighted] = useState(0);
   const [position, setPosition] = useState({ left: 0, top: 0, width: 0, height: 0, opacity: 0 });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -30,6 +31,7 @@ export function SlideTabs({ tabs = stockTabs, value, onValueChange, panelId }: P
   const moveTo = useCallback((index: number) => {
     const tab = tabRefs.current[index];
     if (!tab) return;
+    setHighlighted(index);
     setPosition({ left: tab.offsetLeft, top: tab.offsetTop, width: tab.offsetWidth, height: tab.offsetHeight, opacity: 1 });
   }, []);
   const reset = useCallback(() => moveTo(tabs.findIndex(tab => tab.id === selected)), [moveTo, selected, tabs]);
@@ -56,6 +58,7 @@ export function SlideTabs({ tabs = stockTabs, value, onValueChange, panelId }: P
         {tabs.map((tab, index) => (
           <button key={tab.id} ref={el => { tabRefs.current[index] = el; }} type="button"
             id={`${instanceId}-${tab.id}`} role="tab" aria-selected={selected === tab.id}
+            data-highlighted={highlighted === index}
             aria-controls={panelId} tabIndex={selected === tab.id ? 0 : -1}
             onClick={() => select(index)} onMouseEnter={() => moveTo(index)}
             onFocus={() => moveTo(index)} onBlur={reset}

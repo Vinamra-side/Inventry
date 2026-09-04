@@ -9,10 +9,11 @@
 .slide-tabs .slide-tab {
   display: block; border: 0; margin: 0; min-width: 0; width: auto;
   background: transparent; box-shadow: none; transform: none;
-  color: white; mix-blend-mode: difference; cursor: pointer;
+  color: var(--ink); cursor: pointer;
   line-height: 1.4; letter-spacing: 0; transition: none;
 }
-.slide-tab-cursor { background: var(--ink); }
+.slide-tabs .slide-tab[data-highlighted="true"] { color: #1d1a1c; }
+.slide-tab-cursor { background: var(--logo-pink, #eb6cb1); }
 .slide-tabs .slide-tab:focus-visible { outline: 2px solid var(--logo-pink); outline-offset: -3px; }
 .stock-tabs-scroll { padding: 4px 0 12px; }
 #inventory-category-tabs { min-width: 0; }

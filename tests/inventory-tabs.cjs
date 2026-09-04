@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
-const categories = ['green', 'green', 'roasted', 'instant_coffee'];
+const categories = ['green', 'green', 'roasted', 'instant_coffee', 'herbal_teas'];
 const fixture = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/inventory-ui/inventory.css"></head>
 <body data-theme="dark"><main style="padding:20px;max-width:950px;margin:auto">
@@ -38,6 +38,11 @@ const server = http.createServer((req, res) => {
     await tabs.nth(1).press('ArrowRight');
     assert.equal(await tabs.nth(2).getAttribute('aria-selected'), 'true');
     await tabs.nth(2).press('End');
+    await page.waitForFunction(() => document.querySelector('#stock-catalog').dataset.category === 'herbal_teas');
+    assert.equal(await tabs.nth(4).getAttribute('aria-selected'), 'true');
+    assert.equal(await page.locator('[data-stock-category]:visible').count(), 1);
+    assert.equal(await page.locator('[data-catalog-title]').textContent(), 'Herbal Teas stock');
+    await tabs.nth(4).press('ArrowLeft');
     await page.locator('[data-catalog-empty]').waitFor({state:'visible'});
     assert.equal(await page.locator('[data-stock-category]:visible').count(), 0);
     await tabs.nth(3).press('Home');
@@ -49,7 +54,7 @@ const server = http.createServer((req, res) => {
     assert.equal(await page.locator('[data-remove-form]:visible').count(), 0);
     await page.setViewportSize({width:360,height:780});
     await page.emulateMedia({ reducedMotion:'reduce' });
-    await tabs.nth(3).click();
+    await tabs.nth(4).click();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.evaluate(() => document.body.dataset.theme = 'light');
     await tabs.first().click();

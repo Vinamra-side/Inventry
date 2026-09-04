@@ -44,6 +44,9 @@ https://tailwindcss.com/docs/installation/using-vite for upstream setup details.
 ## Behavior
 
 Green Beans is initially selected. Clicking a category filters cards and updates
+the catalog for Green Beans, Roasted Beans, Instant Coffee, Decoction or Herbal Teas.
+Herbal Teas is also available in the Add item form and backend item validation.
+Switching tabs updates
 the title/count without a request. Hover moves the cursor temporarily; mouse
 leave restores the selection. Arrow keys, Home and End select/focus tabs.
 Reduced-motion preferences disable sliding; narrow screens scroll the tab row.

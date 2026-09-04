@@ -6,6 +6,7 @@ export const stockTabs = [
   { id: "roasted", label: "Roasted Beans" },
   { id: "instant_coffee", label: "Instant Coffee" },
   { id: "decoction", label: "Decoction" },
+  { id: "herbal_teas", label: "Herbal Teas" },
 ] as const;
 
 type Tab = { id: string; label: string };

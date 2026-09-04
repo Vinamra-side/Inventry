@@ -41,7 +41,7 @@ class LicenseLimitError(Exception):
 
 
 ALLOWED_UNITS = {"kg", "g", "lb"}
-ALLOWED_ITEM_TYPES = {"coffee_beans", "instant_coffee", "decoction"}
+ALLOWED_ITEM_TYPES = {"coffee_beans", "instant_coffee", "decoction", "herbal_teas"}
 ALLOWED_BEAN_TYPES = {"green", "roasted"}
 PHONE_PATTERN = re.compile(r"^\+?[0-9][0-9 -]{6,19}$")
 _order_items_schema_ready = False

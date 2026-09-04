@@ -15548,7 +15548,8 @@ const c0 = [
   { id: "green", label: "Green Beans" },
   { id: "roasted", label: "Roasted Beans" },
   { id: "instant_coffee", label: "Instant Coffee" },
-  { id: "decoction", label: "Decoction" }
+  { id: "decoction", label: "Decoction" },
+  { id: "herbal_teas", label: "Herbal Teas" }
 ];
 function YE({ tabs: a = c0, value: l, onValueChange: u, panelId: o }) {
   const [c, d] = P.useState(a[0]?.id ?? ""), h = l ?? c, [p, g] = P.useState({ left: 0, top: 0, width: 0, height: 0, opacity: 0 }), m = P.useRef([]), v = P.useRef(null), S = jE(), E = P.useId(), B = P.useCallback((w) => {

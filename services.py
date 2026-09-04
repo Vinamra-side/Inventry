@@ -43,7 +43,7 @@ class LicenseLimitError(Exception):
     """Raised when an active licence has no remaining user seats."""
 
 
-ALLOWED_UNITS = {"kg", "g", "lb"}
+ALLOWED_UNITS = {"kg", "g", "lb", "L"}
 ALLOWED_ITEM_TYPES = {"coffee_beans", "instant_coffee", "decoction", "herbal_teas"}
 ALLOWED_BEAN_TYPES = {"green", "roasted"}
 PHONE_PATTERN = re.compile(r"^\+?[0-9][0-9 -]{6,19}$")
@@ -172,7 +172,7 @@ def add_bean(name, unit="kg", low_stock_threshold=2.0, item_type="coffee_beans",
     name = _validate_text(name, "Item name", 120)
     unit = (unit or "").strip()
     if unit not in ALLOWED_UNITS:
-        raise ValueError("Unit must be kg, g, or lb.")
+        raise ValueError("Unit must be kg, g, lb, or L (litres).")
     item_type = (item_type or "").strip()
     if item_type not in ALLOWED_ITEM_TYPES:
         raise ValueError("Select a valid item type.")

@@ -5,6 +5,17 @@ ChatGPT, Zapier, or Zoho connector app.
 
 ## What happens
 
+An administrator can open **Orders → View Zoho invoices** to browse Zoho's
+invoice list and open the full invoice detail returned by the Zoho API. The
+detail page includes every returned field in an expandable JSON section.
+This is a read-only connection check: viewing old invoices does **not** create
+orders or deduct current stock. It works even if the Zoho webhook workflow has
+not fired. The page is not a permanent copy of the invoice; it fetches from
+Zoho each time. It requires a working Zoho refresh token, organization ID, and
+the `/books/v3` API base for a Zoho Books account.
+
+For automatic order creation, the webhook workflow is still required:
+
 1. An invoice-created workflow in Zoho sends the invoice ID to this app.
 2. The app validates the webhook secret.
 3. The app refreshes its Zoho OAuth access token and fetches the complete

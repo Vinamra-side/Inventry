@@ -130,6 +130,37 @@ def fetch_invoice(invoice_id):
     return invoice
 
 
+def list_invoices(page=1):
+    """List Zoho invoices without creating orders or changing local stock."""
+    try:
+        page = int(page)
+    except (TypeError, ValueError) as exc:
+        raise ZohoInvoiceError("A valid invoice page is required.") from exc
+    if page < 1 or page > 10000:
+        raise ZohoInvoiceError("A valid invoice page is required.")
+    api_base = _base_url("ZOHO_API_BASE_URL", "https://www.zohoapis.in/inventory/v1")
+    query = urlencode({"organization_id": _required_setting("ZOHO_ORGANIZATION_ID"), "page": page, "per_page": 25})
+    request = Request(
+        f"{api_base}/invoices?{query}",
+        headers={"Authorization": f"Zoho-oauthtoken {_refresh_access_token()}"},
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            data = _decode_response(response)
+    except HTTPError as exc:
+        raise ZohoAPIError(f"Zoho invoice list request failed with status {exc.code}.") from exc
+    except (URLError, TimeoutError) as exc:
+        raise ZohoAPIError("Unable to reach the Zoho invoice API.") from exc
+    invoices = data.get("invoices")
+    if not isinstance(invoices, list):
+        raise ZohoAPIError("Zoho did not return an invoice list.")
+    context = data.get("page_context") or {}
+    if isinstance(context, list):
+        context = context[0] if context else {}
+    return invoices, bool(context.get("has_more_page")) if isinstance(context, dict) else False
+
+
 def _resolve_local_items(line_items):
     conn = get_connection()
     resolved = []

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Zoho invoice{% endblock %}
+{% block mobile_title %}Zoho invoice{% endblock %}
+{% block content %}
+<section class="page-head"><div><div class="eyebrow">ZOHO BOOKS</div><h1>{{ invoice.invoice_number if invoice else 'Invoice unavailable' }}</h1><p class="subtitle">Full invoice details fetched directly from Zoho. This view does not change stock.</p></div><a class="button secondary" href="{{ url_for('zoho_invoices') }}">Back to invoices</a></section>
+<section class="panel">
+  {% if error %}<p role="alert" class="zoho-error">Unable to fetch invoice: {{ error }}</p>{% endif %}
+  {% if invoice %}
+    <p><strong>Zoho invoice ID:</strong> {{ invoice.invoice_id }} · <strong>Customer:</strong> {{ invoice.customer_name or '—' }} · <strong>Status:</strong> {{ invoice.status or '—' }}</p>
+    <p><strong>Date:</strong> {{ invoice.date or '—' }} · <strong>Total:</strong> {{ invoice.currency_code or '' }} {{ invoice.total if invoice.total is not none else '—' }}</p>
+    <h2>Line items</h2>
+    {% if invoice.line_items %}<div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
+      {% for item in invoice.line_items %}<tr><td>{{ item.name or item.description or '—' }}</td><td>{{ item.quantity if item.quantity is not none else '—' }} {{ item.unit or '' }}</td><td>{{ item.rate if item.rate is not none else '—' }}</td><td>{{ item.item_total if item.item_total is not none else '—' }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p>No line items returned.</p>{% endif %}
+    <details class="zoho-raw-details"><summary>All Zoho invoice fields (JSON)</summary><pre>{{ invoice_json }}</pre></details>
+  {% endif %}
+</section>
+{% endblock %}

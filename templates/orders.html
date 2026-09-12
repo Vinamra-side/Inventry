@@ -27,7 +27,7 @@
   {% else %}<section class="panel empty-state compact"><strong>Add a bean first</strong><span>You need at least one bean in Inventory before recording orders.</span><a class="button" href="{{ url_for('new_bean') }}">Add bean</a></section>{% endif %}
 
   <section class="panel">
-    <div class="panel-head"><div><div class="eyebrow">HISTORY</div><h2>Order history</h2></div><span class="count-pill">{{ orders|length }} orders</span></div>
+    <div class="panel-head"><div><div class="eyebrow">HISTORY</div><h2>Order history</h2></div><div>{% if session.get('role') == 'admin' %}<a class="button secondary" href="{{ url_for('zoho_invoices') }}">View Zoho invoices</a>{% endif %} <span class="count-pill">{{ orders|length }} orders</span></div></div>
     {% if orders %}
       <div class="table-wrap"><table>
         <thead><tr><th>Customer</th><th>Items</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>

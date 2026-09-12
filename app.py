@@ -1,3 +1,4 @@
+import json
 import os
 import secrets
 from urllib.parse import urlsplit
@@ -14,6 +15,8 @@ from zoho_service import (
     ZohoConfigurationError,
     ZohoInvoiceError,
     import_invoice,
+    fetch_invoice,
+    list_invoices,
     verify_webhook_secret,
 )
 from services import (
@@ -151,6 +154,36 @@ def register_routes(app):
             return jsonify({"ok": False, "error": str(exc)}), 502
         except (ZohoInvoiceError, InsufficientStockError, InvalidQuantityError, NotFoundError, ValueError) as exc:
             return jsonify({"ok": False, "error": str(exc)}), 422
+
+    @app.route("/zoho-invoices")
+    @admin_required
+    def zoho_invoices():
+        page = max(1, request.args.get("page", 1, type=int))
+        try:
+            invoices, has_next = list_invoices(page)
+            error = None
+        except (ZohoConfigurationError, ZohoAPIError, ZohoInvoiceError) as exc:
+            invoices, has_next, error = [], False, str(exc)
+        response = app.make_response(render_template(
+            "zoho_invoices.html", invoices=invoices, has_next=has_next, page=page, error=error,
+        ))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.route("/zoho-invoices/<invoice_id>")
+    @admin_required
+    def zoho_invoice_detail(invoice_id):
+        try:
+            invoice = fetch_invoice(invoice_id)
+            error = None
+        except (ZohoConfigurationError, ZohoAPIError, ZohoInvoiceError) as exc:
+            invoice, error = None, str(exc)
+        response = app.make_response(render_template(
+            "zoho_invoice_detail.html", invoice=invoice, error=error,
+            invoice_json=json.dumps(invoice, indent=2, ensure_ascii=False) if invoice else None,
+        ))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
 
 
     @app.route("/login", methods=["GET", "POST"])

@@ -61,7 +61,9 @@ class ZohoIntegrationTests(unittest.TestCase):
                         "invoice_id": "90001",
                         "invoice_number": "INV-90001",
                         "customer_name": "Dummy Cafe",
-                        "line_items": [],
+                        "line_items": [{"name": "Coffee", "quantity": 2}],
+                        "billing_address": {"address": "Test Street"},
+                        "tax_total": 25,
                     }
                 }
             )
@@ -70,11 +72,57 @@ class ZohoIntegrationTests(unittest.TestCase):
             invoice = zoho_service.fetch_invoice("90001")
 
         self.assertEqual(invoice["customer_name"], "Dummy Cafe")
+        self.assertEqual(invoice["line_items"][0]["quantity"], 2)
+        self.assertEqual(invoice["billing_address"]["address"], "Test Street")
+        self.assertEqual(invoice["tax_total"], 25)
         self.assertEqual(len(requests), 2)
         token_request, invoice_request = requests[0][0], requests[1][0]
         self.assertEqual(token_request.get_method(), "POST")
         self.assertIn("organization_id=123456789", invoice_request.full_url)
         self.assertEqual(invoice_request.get_header("Authorization"), "Zoho-oauthtoken dummy-access")
+
+    def test_lists_invoices_without_importing_orders(self):
+        requests = []
+
+        def dummy_urlopen(request, timeout):
+            requests.append(request)
+            if request.full_url.endswith("/oauth/v2/token"):
+                return DummyResponse({"access_token": "dummy-access", "expires_in": 3600})
+            return DummyResponse({"invoices": [{"invoice_id": "90001", "invoice_number": "INV-90001"}],
+                                  "page_context": {"has_more_page": True}})
+
+        with patch.object(zoho_service, "urlopen", side_effect=dummy_urlopen), patch.object(
+            zoho_service, "create_order"
+        ) as create_order:
+            invoices, has_next = zoho_service.list_invoices(2)
+        self.assertEqual(invoices[0]["invoice_id"], "90001")
+        self.assertTrue(has_next)
+        self.assertIn("/invoices?", requests[-1].full_url)
+        self.assertIn("page=2", requests[-1].full_url)
+        create_order.assert_not_called()
+
+    def test_admin_invoice_views_show_full_details_without_stock_changes(self):
+        import app as app_module
+        from flask import session
+
+        invoice = {"invoice_id": "90001", "invoice_number": "INV-90001", "customer_name": "Cafe",
+                   "line_items": [{"name": "Coffee", "quantity": 2}],
+                   "billing_address": {"address": "Test Street"}, "tax_total": 25}
+        with patch.object(app_module, "_license_is_active", return_value=(True, None)), patch.object(
+            app_module, "list_invoices", return_value=([invoice], False)
+        ), patch.object(app_module, "fetch_invoice", return_value=invoice), patch(
+            "auth._current_active_user", return_value={"role": "admin"}
+        ), patch.object(app_module, "import_invoice") as importer:
+            client = app_module.app.test_client()
+            listing = client.get("/zoho-invoices")
+            detail = client.get("/zoho-invoices/90001")
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(detail.status_code, 200)
+        self.assertIn(b"INV-90001", listing.data)
+        self.assertIn(b"Test Street", detail.data)
+        self.assertIn(b"tax_total", detail.data)
+        self.assertEqual(detail.headers["Cache-Control"], "private, no-store")
+        importer.assert_not_called()
 
     def test_invoice_becomes_one_multi_item_order_and_retry_is_idempotent(self):
         invoice = {

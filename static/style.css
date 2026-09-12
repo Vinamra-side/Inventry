@@ -441,6 +441,10 @@ body[data-theme="dark"] .account-menu { box-shadow: 0 20px 60px rgba(0,0,0,.38);
   box-shadow: none !important;
   transition: background-color .16s ease, transform .16s ease !important;
 }
+.zoho-error { color: var(--error); }
+.zoho-raw-details { margin-top: 20px; }
+.zoho-raw-details summary { cursor: pointer; color: var(--pink); font-weight: 700; }
+.zoho-raw-details pre { max-height: 65vh; overflow: auto; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--paper); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
 .profile-menu[open] .user-shortcut,
 .profile-menu .user-shortcut:hover {
   transform: none;

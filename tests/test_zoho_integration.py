@@ -5,9 +5,11 @@ No network, Zoho account, or PostgreSQL database is used. Run with:
 """
 
 import json
+from io import BytesIO
 import os
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 import zoho_service
 
@@ -37,7 +39,7 @@ class ZohoIntegrationTests(unittest.TestCase):
                 "ZOHO_ORGANIZATION_ID": "123456789",
                 "ZOHO_WEBHOOK_SECRET": "dummy-webhook-secret",
                 "ZOHO_ACCOUNTS_URL": "https://accounts.zoho.in",
-                "ZOHO_API_BASE_URL": "https://www.zohoapis.in/inventory/v1",
+                "ZOHO_API_BASE_URL": "https://www.zohoapis.in/books/v3",
             },
             clear=False,
         )
@@ -101,12 +103,37 @@ class ZohoIntegrationTests(unittest.TestCase):
         self.assertIn("page=2", requests[-1].full_url)
         create_order.assert_not_called()
 
+    def test_zoho_400_includes_safe_response_message(self):
+        def dummy_urlopen(request, timeout):
+            if request.full_url.endswith("/oauth/v2/token"):
+                return DummyResponse({"access_token": "dummy-access", "expires_in": 3600})
+            raise HTTPError(request.full_url, 400, "Bad Request", {}, BytesIO(
+                b'{"code":57,"message":"Invalid organization ID"}'
+            ))
+
+        with patch.object(zoho_service, "urlopen", side_effect=dummy_urlopen):
+            with self.assertRaises(zoho_service.ZohoAPIError) as context:
+                zoho_service.list_invoices()
+        self.assertIn("status 400", str(context.exception))
+        self.assertIn("Invalid organization ID", str(context.exception))
+        self.assertNotIn("dummy-access", str(context.exception))
+
+    def test_zoho_error_in_success_response_is_not_treated_as_empty_list(self):
+        def dummy_urlopen(request, timeout):
+            if request.full_url.endswith("/oauth/v2/token"):
+                return DummyResponse({"access_token": "dummy-access", "expires_in": 3600})
+            return DummyResponse({"code": 57, "message": "Invalid organization ID"})
+
+        with patch.object(zoho_service, "urlopen", side_effect=dummy_urlopen):
+            with self.assertRaisesRegex(zoho_service.ZohoAPIError, "Invalid organization ID"):
+                zoho_service.list_invoices()
+
     def test_admin_invoice_views_show_full_details_without_stock_changes(self):
         import app as app_module
         from flask import session
 
         invoice = {"invoice_id": "90001", "invoice_number": "INV-90001", "customer_name": "Cafe",
-                   "line_items": [{"name": "Coffee", "quantity": 2}],
+                   "line_items": [{"name": "Coffee", "description": "Medium roast", "item_id": "77", "quantity": 2}],
                    "billing_address": {"address": "Test Street"}, "tax_total": 25}
         with patch.object(app_module, "_license_is_active", return_value=(True, None)), patch.object(
             app_module, "list_invoices", return_value=([invoice], False)
@@ -119,6 +146,8 @@ class ZohoIntegrationTests(unittest.TestCase):
         self.assertEqual(listing.status_code, 200)
         self.assertEqual(detail.status_code, 200)
         self.assertIn(b"INV-90001", listing.data)
+        self.assertIn(b"90001", listing.data)
+        self.assertIn(b"Medium roast", detail.data)
         self.assertIn(b"Test Street", detail.data)
         self.assertIn(b"tax_total", detail.data)
         self.assertEqual(detail.headers["Cache-Control"], "private, no-store")

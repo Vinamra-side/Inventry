@@ -30,9 +30,10 @@
     <div class="panel-head"><div><div class="eyebrow">HISTORY</div><h2>Order history</h2></div><div>{% if session.get('role') == 'admin' %}<a class="button secondary" href="{{ url_for('zoho_invoices') }}">View Zoho invoices</a>{% endif %} <span class="count-pill">{{ orders|length }} orders</span></div></div>
     {% if orders %}
       <div class="table-wrap"><table>
-        <thead><tr><th>Customer</th><th>Items</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <thead><tr><th>Customer</th><th>Invoice</th><th>Items</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>
         <tbody>{% for order in orders %}<tr>
           <td><strong>{{ order.customer_name }}</strong></td>
+          <td>{% if order.external_source == 'zoho_invoice' and order.external_id %}{% if session.get('role') == 'admin' %}<a href="{{ url_for('zoho_invoice_detail', invoice_id=order.external_id) }}">{{ order.external_id }}</a>{% else %}{{ order.external_id }}{% endif %}{% else %}<span class="muted-cell">—</span>{% endif %}</td>
           <td><div class="order-items-list">{% for item in order['items'] %}<span>{{ item.name }}</span>{% endfor %}</div></td>
           <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span>{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
           <td class="order-notes-cell">

@@ -7,11 +7,16 @@
   {% if error %}<p role="alert" class="zoho-error">Unable to fetch invoice: {{ error }}</p>{% endif %}
   {% if invoice %}
     <p><strong>Zoho invoice ID:</strong> {{ invoice.invoice_id }} · <strong>Customer:</strong> {{ invoice.customer_name or '—' }} · <strong>Status:</strong> {{ invoice.status or '—' }}</p>
-    <p><strong>Date:</strong> {{ invoice.date or '—' }} · <strong>Total:</strong> {{ invoice.currency_code or '' }} {{ invoice.total if invoice.total is not none else '—' }}</p>
+    <p><strong>Date:</strong> {{ invoice.date or '—' }} · <strong>Due:</strong> {{ invoice.due_date or '—' }} · <strong>Reference:</strong> {{ invoice.reference_number or '—' }}</p>
+    <p><strong>Subtotal:</strong> {{ invoice.currency_code or '' }} {{ invoice.sub_total if invoice.sub_total is not none else '—' }} · <strong>Tax:</strong> {{ invoice.currency_code or '' }} {{ invoice.tax_total if invoice.tax_total is not none else '—' }} · <strong>Total:</strong> {{ invoice.currency_code or '' }} {{ invoice.total if invoice.total is not none else '—' }} · <strong>Balance:</strong> {{ invoice.currency_code or '' }} {{ invoice.balance if invoice.balance is not none else '—' }}</p>
     <h2>Line items</h2>
-    {% if invoice.line_items %}<div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
-      {% for item in invoice.line_items %}<tr><td>{{ item.name or item.description or '—' }}</td><td>{{ item.quantity if item.quantity is not none else '—' }} {{ item.unit or '' }}</td><td>{{ item.rate if item.rate is not none else '—' }}</td><td>{{ item.item_total if item.item_total is not none else '—' }}</td></tr>{% endfor %}
+    {% if invoice.line_items %}<div class="table-wrap"><table><thead><tr><th>Item</th><th>Description</th><th>Zoho item ID</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
+      {% for item in invoice.line_items %}<tr><td>{{ item.name or '—' }}</td><td>{{ item.description or '—' }}</td><td>{{ item.item_id or '—' }}</td><td>{{ item.quantity if item.quantity is not none else '—' }} {{ item.unit or '' }}</td><td>{{ item.rate if item.rate is not none else '—' }}</td><td>{{ item.item_total if item.item_total is not none else '—' }}</td></tr>{% endfor %}
     </tbody></table></div>{% else %}<p>No line items returned.</p>{% endif %}
+    {% if invoice.notes %}<h2>Notes</h2><p>{{ invoice.notes }}</p>{% endif %}
+    {% if invoice.terms %}<h2>Terms</h2><p>{{ invoice.terms }}</p>{% endif %}
+    {% if invoice.billing_address %}<h2>Billing address</h2><p>{{ invoice.billing_address.address or '' }} {{ invoice.billing_address.street2 or '' }}<br>{{ invoice.billing_address.city or '' }} {{ invoice.billing_address.state or '' }} {{ invoice.billing_address.zip or '' }} {{ invoice.billing_address.country or '' }}</p>{% endif %}
+    {% if invoice.shipping_address %}<h2>Shipping address</h2><p>{{ invoice.shipping_address.address or '' }} {{ invoice.shipping_address.street2 or '' }}<br>{{ invoice.shipping_address.city or '' }} {{ invoice.shipping_address.state or '' }} {{ invoice.shipping_address.zip or '' }} {{ invoice.shipping_address.country or '' }}</p>{% endif %}
     <details class="zoho-raw-details"><summary>All Zoho invoice fields (JSON)</summary><pre>{{ invoice_json }}</pre></details>
   {% endif %}
 </section>

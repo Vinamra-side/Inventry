@@ -6,9 +6,10 @@
 <section class="panel">
   {% if error %}<p role="alert" class="zoho-error">Unable to fetch invoices: {{ error }}</p>{% endif %}
   {% if invoices %}
-  <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody>
+  <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Zoho ID</th><th>Customer</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody>
   {% for invoice in invoices %}<tr>
     <td><strong>{{ invoice.invoice_number or invoice.invoice_id }}</strong></td>
+    <td>{{ invoice.invoice_id or '—' }}</td>
     <td>{{ invoice.customer_name or '—' }}</td>
     <td>{{ invoice.date or '—' }}</td>
     <td>{{ invoice.status or '—' }}</td>

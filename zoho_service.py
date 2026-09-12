@@ -62,6 +62,31 @@ def _decode_response(response):
         raise ZohoAPIError("Zoho returned an invalid response.") from exc
 
 
+def _api_error(operation, exc):
+    """Keep Zoho's useful error code/message without exposing request credentials."""
+    detail = ""
+    try:
+        payload = json.loads(exc.read().decode("utf-8"))
+        if isinstance(payload, dict):
+            code = payload.get("code")
+            message = payload.get("message")
+            if isinstance(message, str):
+                message = " ".join(message.split())[:300]
+                detail = f" Zoho code {code}: {message}" if code is not None else f" {message}"
+    except (UnicodeDecodeError, json.JSONDecodeError, OSError):
+        pass
+    return ZohoAPIError(f"Zoho {operation} failed with status {exc.code}.{detail}")
+
+
+def _check_api_result(data, operation):
+    if not isinstance(data, dict):
+        raise ZohoAPIError("Zoho returned an invalid response.")
+    if data.get("code") not in (None, 0):
+        message = str(data.get("message") or "Unknown Zoho error")
+        raise ZohoAPIError(f"Zoho {operation} failed (code {data['code']}): {message[:300]}")
+    return data
+
+
 def _refresh_access_token():
     global _access_token, _access_token_expires_at
     with _token_lock:
@@ -104,7 +129,7 @@ def fetch_invoice(invoice_id):
         raise ZohoInvoiceError("A valid Zoho invoice ID is required.")
 
     api_base = _base_url(
-        "ZOHO_API_BASE_URL", "https://www.zohoapis.in/inventory/v1"
+        "ZOHO_API_BASE_URL", "https://www.zohoapis.in/books/v3"
     )
     organization_id = _required_setting("ZOHO_ORGANIZATION_ID")
     query = urlencode({"organization_id": organization_id})
@@ -115,12 +140,12 @@ def fetch_invoice(invoice_id):
     )
     try:
         with urlopen(request, timeout=20) as response:
-            data = _decode_response(response)
+            data = _check_api_result(_decode_response(response), "invoice request")
     except HTTPError as exc:
         if exc.code == 401:
             global _access_token_expires_at
             _access_token_expires_at = 0
-        raise ZohoAPIError(f"Zoho invoice request failed with status {exc.code}.") from exc
+        raise _api_error("invoice request", exc) from exc
     except (URLError, TimeoutError) as exc:
         raise ZohoAPIError("Unable to reach the Zoho invoice API.") from exc
 
@@ -138,7 +163,7 @@ def list_invoices(page=1):
         raise ZohoInvoiceError("A valid invoice page is required.") from exc
     if page < 1 or page > 10000:
         raise ZohoInvoiceError("A valid invoice page is required.")
-    api_base = _base_url("ZOHO_API_BASE_URL", "https://www.zohoapis.in/inventory/v1")
+    api_base = _base_url("ZOHO_API_BASE_URL", "https://www.zohoapis.in/books/v3")
     query = urlencode({"organization_id": _required_setting("ZOHO_ORGANIZATION_ID"), "page": page, "per_page": 25})
     request = Request(
         f"{api_base}/invoices?{query}",
@@ -147,9 +172,9 @@ def list_invoices(page=1):
     )
     try:
         with urlopen(request, timeout=20) as response:
-            data = _decode_response(response)
+            data = _check_api_result(_decode_response(response), "invoice list request")
     except HTTPError as exc:
-        raise ZohoAPIError(f"Zoho invoice list request failed with status {exc.code}.") from exc
+        raise _api_error("invoice list request", exc) from exc
     except (URLError, TimeoutError) as exc:
         raise ZohoAPIError("Unable to reach the Zoho invoice API.") from exc
     invoices = data.get("invoices")

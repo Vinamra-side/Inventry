@@ -54,17 +54,17 @@ $env:ZOHO_CLIENT_ID = "YOUR_CLIENT_ID"
 $env:ZOHO_CLIENT_SECRET = "YOUR_CLIENT_SECRET"
 ```
 
-Generate the authorization URL for Zoho Inventory in India:
+Generate the authorization URL for Zoho Books in India:
 
 ```powershell
-python scripts/zoho_oauth_setup.py --region in --product inventory --redirect-uri "YOUR_EXACT_REDIRECT_URI"
+python scripts/zoho_oauth_setup.py --region in --product books --redirect-uri "YOUR_EXACT_REDIRECT_URI"
 ```
 
 Open the printed URL, approve access, and copy the `code` value from the
 redirected browser URL. Exchange it immediately because grant codes expire:
 
 ```powershell
-python scripts/zoho_oauth_setup.py --region in --product inventory --redirect-uri "YOUR_EXACT_REDIRECT_URI" --code "ONE_TIME_CODE"
+python scripts/zoho_oauth_setup.py --region in --product books --redirect-uri "YOUR_EXACT_REDIRECT_URI" --code "ONE_TIME_CODE"
 ```
 
 The helper prints the refresh-token environment entry. Store it as a protected
@@ -81,23 +81,34 @@ ZOHO_REFRESH_TOKEN=...
 ZOHO_ORGANIZATION_ID=...
 ZOHO_WEBHOOK_SECRET=...
 ZOHO_ACCOUNTS_URL=https://accounts.zoho.in
-ZOHO_API_BASE_URL=https://www.zohoapis.in/inventory/v1
+ZOHO_API_BASE_URL=https://www.zohoapis.in/books/v3
 ```
 
-Change both URLs for the Zoho account's data center. For Zoho Books, the same
-service can be used by setting the API base URL to the matching `/books/v3`
-endpoint and granting `ZohoBooks.invoices.READ` instead.
+Change both URLs for the Zoho account's data center. The refresh token must
+have `ZohoBooks.invoices.READ` scope. Production environment variables override
+the defaults in code and `.env.example`; update the deployment setting and
+redeploy if an older `/inventory/v1` value is present.
 
 Never commit real client secrets, refresh tokens, or webhook secrets.
 
-The organization ID appears in Zoho Inventory under **Manage Organizations**.
-It can also be retrieved through Zoho's Organizations API.
+Use the numeric organization ID of the **same Zoho Books organization** that
+contains the invoices. It can be retrieved through Zoho's Organizations API.
+
+### If the invoice page returns HTTP 400
+
+The admin invoice page now displays Zoho's error `code` and `message` when
+available. Check that `ZOHO_API_BASE_URL` is the Books v3 endpoint for the
+account's data center, that `ZOHO_ORGANIZATION_ID` is numeric and belongs to
+the organization with the invoices, and that the refresh token has the Books
+invoice read scope. A successful request is read-only; it does not import old
+invoices or deduct stock. Do not share the client secret, refresh token, or
+full authorization headers while troubleshooting.
 
 ## Zoho webhook
 
 ### 4. Create the invoice workflow
 
-In Zoho Inventory, open **Settings → Automation → Workflow Rules**, create a
+In Zoho Books, open **Settings → Automation → Workflow Rules**, create a
 rule for the **Invoices** module that runs when an invoice is created, then add
 a webhook action with:
 

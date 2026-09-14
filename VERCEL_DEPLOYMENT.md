@@ -76,14 +76,14 @@ After deployment, open the Vercel URL. Test:
 1. Dashboard
 2. Add bean
 3. Add inventory
-4. Create order and verify stock decreases
-5. Cancel order and verify stock returns
-6. Delivery completion
+4. Create an order (including an out-of-stock item) and verify stock is unchanged; check the green/red item indicators in Orders and Deliveries
+5. Restock as needed, mark the order delivered, and verify stock decreases once
+6. Cancel a different pending order and verify stock is unchanged
 7. Users/license seat limit
 8. Open the native Windows licence application, sign in with the fixed owner credentials, and update Licence Control
 9. Disable a temporary login account and confirm its already-open session is rejected
 10. Confirm delivered orders do not offer or accept cancellation
-11. Send a Zoho invoice webhook and confirm that one order is created with all invoice line items
+11. Send a Zoho invoice webhook and confirm that one order is created with all invoice line items without deducting stock
 12. Retry the same webhook and confirm it does not create a duplicate order
 
 ## Install as an app

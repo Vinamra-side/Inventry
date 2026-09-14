@@ -31,7 +31,6 @@ from services import (
     add_subscriber,
     cancel_order,
     create_order,
-    get_bean,
     get_license_status,
     get_insights,
     is_past_zoho_invoice,
@@ -447,7 +446,7 @@ def register_routes(app):
         try:
             mark_order_delivered(order_id)
             flash(f"Order #{order_id} marked as delivered.", "success")
-        except (NotFoundError, ValueError) as exc:
+        except (InsufficientStockError, NotFoundError, ValueError) as exc:
             flash(str(exc), "error")
         return redirect(url_for("deliveries"))
 
@@ -456,9 +455,9 @@ def register_routes(app):
     def cancel_order_route(order_id):
         try:
             order = cancel_order(order_id)
-            bean = get_bean(order["bean_id"])
             flash(
-                f"Order #{order['id']} cancelled, {float(order['quantity']):g} {bean['unit']} returned to stock.",
+                f"Order #{order['id']} cancelled."
+                + (" Previously deducted stock was restored." if order["stock_deducted"] else " Stock was unchanged."),
                 "success",
             )
         except (NotFoundError, ValueError) as exc:

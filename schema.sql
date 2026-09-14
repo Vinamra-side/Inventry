@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_name VARCHAR(120) NOT NULL,
     quantity NUMERIC(10, 2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending_delivery',
+    stock_deducted BOOLEAN NOT NULL DEFAULT true,
     notes VARCHAR(255),
     delivery_date DATE,
     delivered_at TIMESTAMPTZ,
@@ -60,6 +61,8 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_id VARCHAR(120);
 ALTER TABLE orders ALTER COLUMN bean_id DROP NOT NULL;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(120);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_payload JSONB;
+-- Existing orders already deducted stock when created. New pending orders opt out.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted BOOLEAN NOT NULL DEFAULT true;
 
 -- Line items allow one customer order to contain multiple catalog items.
 -- The legacy bean_id/quantity columns remain populated for compatibility.
@@ -181,10 +184,9 @@ DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_quantity_positive') THEN
         ALTER TABLE orders ADD CONSTRAINT orders_quantity_positive CHECK (quantity > 0);
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_status_valid') THEN
-        ALTER TABLE orders ADD CONSTRAINT orders_status_valid
-            CHECK (status IN ('pending_delivery', 'delivered', 'fulfilled', 'cancelled'));
-    END IF;
+    ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_valid;
+    ALTER TABLE orders ADD CONSTRAINT orders_status_valid
+        CHECK (status IN ('pending_delivery', 'delivered', 'fulfilled', 'cancelled', 'historical'));
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscribers_name_not_blank') THEN
         ALTER TABLE subscribers ADD CONSTRAINT subscribers_name_not_blank CHECK (length(btrim(name)) > 0);
     END IF;

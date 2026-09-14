@@ -263,6 +263,11 @@ body[data-theme="dark"] .remove-mode-button[aria-pressed="true"] { background: #
 .form-action button { min-height: 44px; margin-top: 0; width: 100%; }
 .order-items-list { display: grid; gap: 5px; }
 .order-items-list span { display: block; white-space: nowrap; }
+.order-items-list .order-stock-available { color: var(--success); font-weight: 700; }
+.order-items-list .order-stock-out { color: var(--error); font-weight: 700; }
+.order-items-list small { display: inline-block; margin-left: 5px; font-size: 11px; font-weight: 700; }
+body[data-theme="dark"] .order-items-list .order-stock-available { color: #62c990; }
+body[data-theme="dark"] .order-items-list .order-stock-out { color: #f09298; }
 .inline-form { margin: 0; }
 .table-action { padding: 6px 9px; border: 1px solid var(--border); background: #fff; color: var(--muted); box-shadow: none; font-size: 9px; }
 .table-action:hover { background: var(--pink-soft); color: var(--pink-dark); box-shadow: none; }

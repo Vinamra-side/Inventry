@@ -6,12 +6,10 @@ enforced in one place instead of being re-implemented in every route:
 
 - add_inventory(): records stock received from an external shipment.
 - roast_beans(): converts green stock into roasted stock at an 85% yield.
-- create_order(): deducts stock automatically when recording an order.
-  Fails cleanly if there is
-  not enough stock for the requested bean.
-- cancel_order(): reverses a specific order's deduction. This is not a
-  manual stock edit, it is undoing an automatic one, and keeps stock
-  numbers accurate when an order does not go through.
+- create_order(): records demand without changing stock.
+- mark_order_delivered(): deducts stock atomically when delivery is confirmed.
+- cancel_order(): restores stock only for legacy orders that were deducted
+  when created; new pending orders never change stock on cancellation.
 
 Every write here happens inside a single transaction (one connection,
 committed once at the end) so a stock update and its log entry can
@@ -75,6 +73,13 @@ def _ensure_order_items_schema(conn):
         cur.execute("ALTER TABLE orders ALTER COLUMN bean_id DROP NOT NULL")
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(120)")
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_payload JSONB")
+        # Existing orders were deducted at creation under the previous workflow.
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted BOOLEAN NOT NULL DEFAULT true")
+        cur.execute("ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_valid")
+        cur.execute(
+            "ALTER TABLE orders ADD CONSTRAINT orders_status_valid "
+            "CHECK (status IN ('pending_delivery', 'delivered', 'fulfilled', 'cancelled', 'historical'))"
+        )
         cur.execute("ALTER TABLE order_items ALTER COLUMN bean_id DROP NOT NULL")
         cur.execute("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_name VARCHAR(255)")
         cur.execute("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_unit VARCHAR(30)")
@@ -109,7 +114,8 @@ def _attach_order_items(cur, orders):
         """
         SELECT order_items.order_id, order_items.bean_id, order_items.quantity,
                COALESCE(order_items.item_name, beans.name) AS name,
-               COALESCE(order_items.item_unit, beans.unit, '') AS unit
+               COALESCE(order_items.item_unit, beans.unit, '') AS unit,
+               beans.current_stock
         FROM order_items
         LEFT JOIN beans ON beans.id = order_items.bean_id
         WHERE order_items.order_id = ANY(%s)
@@ -118,7 +124,16 @@ def _attach_order_items(cur, orders):
         (list(order_map),),
     )
     for item in cur.fetchall():
-        order_map[item["order_id"]]["items"].append(dict(item))
+        order = order_map[item["order_id"]]
+        item = dict(item)
+        if order["status"] == "pending_delivery":
+            item["available"] = bool(order.get("stock_deducted", True)) or (
+                item["current_stock"] is not None
+                and Decimal(str(item["current_stock"])) >= Decimal(str(item["quantity"]))
+            )
+        else:
+            item["available"] = None
+        order["items"].append(item)
     for order in result:
         order["item_summary"] = ", ".join(
             f"{item['name']} · {float(item['quantity']):g} {item['unit']}"
@@ -187,8 +202,8 @@ def archive_zoho_invoice(invoice):
                 """
                 INSERT INTO orders (
                     bean_id, customer_name, quantity, status, notes, created_at,
-                    external_source, external_id, invoice_number, external_payload
-                ) VALUES (NULL, %s, %s, 'historical', %s, %s, %s, %s, %s, %s::jsonb)
+                    external_source, external_id, invoice_number, external_payload, stock_deducted
+                ) VALUES (NULL, %s, %s, 'historical', %s, %s, %s, %s, %s, %s::jsonb, false)
                 RETURNING *
                 """,
                 (customer, prepared[0][2], notes, invoice_date,
@@ -529,20 +544,15 @@ def create_order(
                     conn.commit()
                     return existing_order
 
-            # Lock in stable id order to prevent both overselling and deadlocks
-            # when concurrent orders contain several of the same items.
+            # Orders may contain out-of-stock items. Stock is checked and
+            # deducted only when the order is marked delivered.
             selected = []
             for item_id in sorted(quantities):
-                cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (item_id,))
+                cur.execute("SELECT * FROM beans WHERE id = %s", (item_id,))
                 bean = cur.fetchone()
                 if bean is None:
                     raise NotFoundError(f"No item found with id {item_id}.")
                 item_quantity = quantities[item_id]
-                if float(bean["current_stock"]) < item_quantity:
-                    raise InsufficientStockError(
-                        f"Only {bean['current_stock']} {bean['unit']} of {bean['name']} left, "
-                        f"cannot fulfil an order for {item_quantity:g} {bean['unit']}."
-                    )
                 selected.append((bean, item_quantity))
 
             primary_bean, primary_quantity = selected[0]
@@ -551,9 +561,9 @@ def create_order(
                 """
                 INSERT INTO orders (
                     bean_id, customer_name, quantity, notes, status, delivery_date,
-                    external_source, external_id
+                    external_source, external_id, stock_deducted
                 )
-                VALUES (%s, %s, %s, %s, 'pending_delivery', %s, %s, %s)
+                VALUES (%s, %s, %s, %s, 'pending_delivery', %s, %s, %s, false)
                 RETURNING *
                 """,
                 (
@@ -567,17 +577,6 @@ def create_order(
                 cur.execute(
                     "INSERT INTO order_items (order_id, bean_id, quantity) VALUES (%s, %s, %s)",
                     (order["id"], bean["id"], item_quantity),
-                )
-                cur.execute(
-                    """
-                    INSERT INTO stock_movements (bean_id, delta, movement_type, reason, order_id)
-                    VALUES (%s, %s, 'order', %s, %s)
-                    """,
-                    (bean["id"], -item_quantity, notes or f"Order for {customer_name}", order["id"]),
-                )
-                cur.execute(
-                    "UPDATE beans SET current_stock = current_stock - %s WHERE id = %s",
-                    (item_quantity, bean["id"]),
                 )
         conn.commit()
         order = dict(order)
@@ -609,16 +608,18 @@ def cancel_order(order_id):
             if order["status"] != "pending_delivery":
                 raise ValueError("Only orders awaiting delivery can be cancelled.")
 
-            cur.execute(
-                "SELECT bean_id, quantity FROM order_items WHERE order_id = %s ORDER BY bean_id FOR UPDATE",
-                (order_id,),
-            )
-            order_items = cur.fetchall()
-            for item in order_items:
+            order_items = []
+            if order["stock_deducted"]:
                 cur.execute(
-                    "UPDATE beans SET current_stock = current_stock + %s WHERE id = %s",
-                    (item["quantity"], item["bean_id"]),
+                    "SELECT bean_id, quantity FROM order_items WHERE order_id = %s ORDER BY bean_id FOR UPDATE",
+                    (order_id,),
                 )
+                order_items = cur.fetchall()
+                for item in order_items:
+                    cur.execute(
+                        "UPDATE beans SET current_stock = current_stock + %s WHERE id = %s",
+                        (item["quantity"], item["bean_id"]),
+                    )
             cur.execute(
                 """
                 UPDATE orders SET status = 'cancelled', cancelled_at = now()
@@ -638,6 +639,9 @@ def cancel_order(order_id):
                 )
         conn.commit()
         return updated_order
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         release_connection(conn)
 
@@ -688,10 +692,47 @@ def list_deliveries(limit=101, offset=0):
 def mark_order_delivered(order_id):
     conn = get_connection()
     try:
+        _ensure_order_items_schema(conn)
         with conn.cursor() as cur:
+            cur.execute("SELECT * FROM orders WHERE id = %s FOR UPDATE", (order_id,))
+            pending = cur.fetchone()
+            if pending is None or pending["status"] != "pending_delivery":
+                raise NotFoundError("This order is not awaiting delivery.")
+            if not pending["stock_deducted"]:
+                cur.execute(
+                    "SELECT bean_id, quantity FROM order_items WHERE order_id = %s ORDER BY bean_id",
+                    (order_id,),
+                )
+                items = cur.fetchall()
+                if not items:
+                    raise ValueError("This order has no items to deliver.")
+                selected = []
+                for item in items:
+                    cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (item["bean_id"],))
+                    bean = cur.fetchone()
+                    if bean is None:
+                        raise NotFoundError("An item in this order is no longer in the catalog.")
+                    if Decimal(str(bean["current_stock"])) < Decimal(str(item["quantity"])):
+                        raise InsufficientStockError(
+                            f"Only {bean['current_stock']} {bean['unit']} of {bean['name']} available; "
+                            f"{item['quantity']} {bean['unit']} required to deliver this order."
+                        )
+                    selected.append((bean, item["quantity"]))
+                for bean, quantity in selected:
+                    cur.execute(
+                        "UPDATE beans SET current_stock = current_stock - %s WHERE id = %s",
+                        (quantity, bean["id"]),
+                    )
+                    cur.execute(
+                        """
+                        INSERT INTO stock_movements (bean_id, delta, movement_type, reason, order_id)
+                        VALUES (%s, %s, 'order', %s, %s)
+                        """,
+                        (bean["id"], -quantity, pending["notes"] or f"Delivered order for {pending['customer_name']}", order_id),
+                    )
             cur.execute(
                 """
-                UPDATE orders SET status = 'delivered', delivered_at = now()
+                UPDATE orders SET status = 'delivered', delivered_at = now(), stock_deducted = true
                 WHERE id = %s AND status = 'pending_delivery'
                 RETURNING *
                 """,
@@ -702,6 +743,9 @@ def mark_order_delivered(order_id):
                 raise NotFoundError("This order is not awaiting delivery.")
         conn.commit()
         return order
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         release_connection(conn)
 

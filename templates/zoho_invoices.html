@@ -2,7 +2,7 @@
 {% block title %}Zoho invoices{% endblock %}
 {% block mobile_title %}Zoho invoices{% endblock %}
 {% block content %}
-<section class="page-head"><div><div class="eyebrow">ZOHO BILLING</div><h1>Invoices</h1><p class="subtitle">Past invoices can be imported to history without changing stock. Today's invoices can be imported as active orders, which deduct stock.</p></div><a class="button secondary" href="{{ url_for('orders') }}">Back to orders</a></section>
+<section class="page-head"><div><div class="eyebrow">ZOHO BILLING</div><h1>Invoices</h1><p class="subtitle">Past invoices can be imported to history without changing stock. Today's invoices become active orders; stock is deducted when delivered.</p></div><a class="button secondary" href="{{ url_for('orders') }}">Back to orders</a></section>
 <section class="panel">
   {% if error %}<p role="alert" class="zoho-error">Unable to fetch invoices: {{ error }}</p>{% endif %}
   {% if invoices %}
@@ -16,7 +16,7 @@
     <td>{{ invoice.date or '—' }}</td>
     <td>{{ invoice.status or '—' }}</td>
     <td>{{ invoice.currency_code or '' }} {{ invoice.total if invoice.total is not none else '—' }}</td>
-    <td>{% if invoice.invoice_id %}<a class="button secondary" href="{{ url_for('zoho_invoice_detail', invoice_id=invoice.invoice_id) }}">Full invoice</a>{% if invoice.historical_eligible %}<form class="inline-form historical-import-form" method="POST" action="{{ url_for('zoho_invoice_import_history', invoice_id=invoice.invoice_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="page" value="{{ page }}"><button type="submit" class="table-action">Import to history</button></form>{% else %}<form class="inline-form" method="POST" action="{{ url_for('zoho_invoice_import_order', invoice_id=invoice.invoice_id) }}" onsubmit="return window.confirm('Import this invoice as an active order? Matching catalog stock will be deducted.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="page" value="{{ page }}"><button type="submit" class="table-action">Import as order</button></form>{% endif %}{% endif %}</td>
+    <td>{% if invoice.invoice_id %}<a class="button secondary" href="{{ url_for('zoho_invoice_detail', invoice_id=invoice.invoice_id) }}">Full invoice</a>{% if invoice.historical_eligible %}<form class="inline-form historical-import-form" method="POST" action="{{ url_for('zoho_invoice_import_history', invoice_id=invoice.invoice_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="page" value="{{ page }}"><button type="submit" class="table-action">Import to history</button></form>{% else %}<form class="inline-form" method="POST" action="{{ url_for('zoho_invoice_import_order', invoice_id=invoice.invoice_id) }}" onsubmit="return window.confirm('Import this invoice as an active order? Stock will be deducted when delivery is confirmed.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="page" value="{{ page }}"><button type="submit" class="table-action">Import as order</button></form>{% endif %}{% endif %}</td>
   </tr>{% endfor %}
   </tbody></table></div>
   {% elif not error %}<p>No invoices returned by this Zoho organization.</p>{% endif %}

@@ -2,7 +2,7 @@
 {% block title %}Orders{% endblock %}
 {% block mobile_title %}Orders{% endblock %}
 {% block content %}
-  <section class="page-head"><div><div class="eyebrow">SALES</div><h1>Orders</h1><p class="subtitle">Record an order and stock is deducted in the same step.</p></div></section>
+  <section class="page-head"><div><div class="eyebrow">SALES</div><h1>Orders</h1><p class="subtitle">Record orders now; stock is deducted only when they are marked delivered.</p></div></section>
 
   {% if beans %}
   <section class="panel form-panel order-form-panel">
@@ -14,7 +14,7 @@
         <div class="order-lines-heading"><label>Items</label><button type="button" class="add-order-item" data-add-order-item>＋ Add item</button></div>
         <div class="order-lines" data-order-lines>
           <div class="order-line">
-            <select name="bean_id" aria-label="Item" required>{% for bean in beans %}<option value="{{ bean.id }}" {% if bean.current_stock <= 0 %}disabled{% endif %}>{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available{% if bean.current_stock <= 0 %} — Out of stock{% endif %}</option>{% endfor %}</select>
+            <select name="bean_id" aria-label="Item" required>{% for bean in beans %}<option value="{{ bean.id }}">{{ bean.name }} · {{ "%.2f"|format(bean.current_stock) }} {{ bean.unit }} available{% if bean.current_stock <= 0 %} — Out of stock{% endif %}</option>{% endfor %}</select>
             <input type="number" name="quantity" aria-label="Quantity" step="0.01" min="0.01" placeholder="Quantity" required>
             <button type="button" class="remove-order-item" aria-label="Remove this item" data-remove-order-item>×</button>
           </div>
@@ -34,8 +34,8 @@
         <tbody>{% for order in orders %}<tr>
           <td><strong>{{ order.customer_name }}</strong></td>
           <td>{% if order.external_source == 'zoho_billing_invoice' and order.external_id %}{% if session.get('role') == 'admin' %}<a href="{{ url_for('zoho_invoice_detail', invoice_id=order.external_id) }}">{{ order.invoice_number or order.external_id }}</a>{% else %}{{ order.invoice_number or order.external_id }}{% endif %}{% elif order.external_source == 'zoho_invoice' and order.external_id %}{{ order.external_id }}{% else %}<span class="muted-cell">—</span>{% endif %}</td>
-          <td><div class="order-items-list">{% for item in order['items'] %}<span>{{ item.name }}</span>{% endfor %}</div></td>
-          <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span>{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
+          <td><div class="order-items-list">{% for item in order['items'] %}<span class="{{ 'order-stock-available' if item.available == true else ('order-stock-out' if item.available == false else '') }}">{{ item.name }}{% if item.available == true %} <small>Available</small>{% elif item.available == false %} <small>Out of stock</small>{% endif %}</span>{% endfor %}</div></td>
+          <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span class="{{ 'order-stock-available' if item.available == true else ('order-stock-out' if item.available == false else '') }}">{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
           <td class="order-notes-cell">
             {% if order.notes %}
               {% if order.notes|length > 42 %}

@@ -17,7 +17,7 @@ invoice line, the invoice date/number, and the complete invoice JSON snapshot
 in local order history without catalog matching or stock deductions. They are
 idempotent by Zoho invoice ID; cancelled/void and current-day invoices are not
 history-imported. For a current-day invoice, an admin can use **Import as order**
-to create the active order immediately (with catalog matching and stock deduction)
+to create the active order immediately (with catalog matching but no stock deduction yet)
 if the webhook has not done so already. The webhook uses the same invoice ID and
 will not create a duplicate later.
 The invoice list works even if the Zoho webhook workflow has not fired. It
@@ -34,12 +34,15 @@ For automatic order creation, the webhook workflow is still required:
    its exact description, saved Billing item ID, or exact name. A Billing item
    ID is saved only when the name and description do not identify different
    variants; the old Books/Inventory item ID is kept separate.
-5. One local multi-item order is created and stock is deducted atomically.
+5. One local multi-item pending order is created. Stock is checked and deducted
+   atomically only when staff marks the order delivered.
 6. The Zoho invoice ID is saved on the order. Repeated webhook deliveries
    return the existing order instead of creating a duplicate.
 
 Cancelled or void invoices are rejected. An invoice is also rejected if an
-item cannot be matched or local stock is insufficient.
+item cannot be matched. Insufficient local stock does not prevent order creation;
+the item appears red until stock arrives, and delivery is blocked until enough
+stock is available.
 
 Zoho and local item quantities must use the same unit; this service does not
 perform automatic unit conversion.

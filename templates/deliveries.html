@@ -2,7 +2,7 @@
 {% block title %}Deliveries{% endblock %}
 {% block mobile_title %}Deliveries{% endblock %}
 {% block content %}
-<section class="page-head"><div><div class="eyebrow">FULFILMENT</div><h1>Deliveries</h1><p class="subtitle">Confirm each delivery manually once it is complete.</p></div></section>
+<section class="page-head"><div><div class="eyebrow">FULFILMENT</div><h1>Deliveries</h1><p class="subtitle">Check item availability before delivery. Stock is deducted when delivery is confirmed.</p></div></section>
 <section class="panel">
   <div class="panel-head"><div><div class="eyebrow">DELIVERY QUEUE</div><h2>Order deliveries</h2></div><span class="count-pill">{{ deliveries|length }} orders</span></div>
   {% if deliveries %}
@@ -10,8 +10,8 @@
       <thead><tr><th>Customer</th><th>Item</th><th>Quantity</th><th>Status</th><th>Delivery</th></tr></thead>
       <tbody>{% for order in deliveries %}<tr>
         <td><strong>{{ order.customer_name }}</strong></td>
-        <td><div class="order-items-list">{% for item in order['items'] %}<span>{{ item.name }}</span>{% endfor %}</div></td>
-        <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span>{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
+        <td><div class="order-items-list">{% for item in order['items'] %}<span class="{{ 'order-stock-available' if item.available == true else ('order-stock-out' if item.available == false else '') }}">{{ item.name }}{% if item.available == true %} <small>Available</small>{% elif item.available == false %} <small>Out of stock</small>{% endif %}</span>{% endfor %}</div></td>
+        <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span class="{{ 'order-stock-available' if item.available == true else ('order-stock-out' if item.available == false else '') }}">{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
         <td><span class="badge {{ 'ok' if order.status in ['delivered', 'fulfilled'] else 'low' }}">{{ 'Delivered' if order.status in ['delivered', 'fulfilled'] else 'Awaiting delivery' }}</span></td>
         <td>
           {% if order.status == 'pending_delivery' %}

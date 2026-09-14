@@ -50,6 +50,44 @@ def _base_url(name, default):
     return value
 
 
+def _billing_api_base():
+    value = _base_url("ZOHO_API_BASE_URL", "https://www.zohoapis.in/billing/v1")
+    if not value.endswith("/billing/v1"):
+        raise ZohoConfigurationError(
+            "ZOHO_API_BASE_URL must be the Zoho Billing /billing/v1 endpoint, not Books or Inventory."
+        )
+    return value
+
+
+def _billing_headers():
+    organization_id = _required_setting("ZOHO_ORGANIZATION_ID")
+    return {
+        "Authorization": f"Zoho-oauthtoken {_refresh_access_token()}",
+        "X-com-zoho-subscriptions-organizationid": organization_id,
+    }
+
+
+def _normalize_invoice(invoice):
+    """Expose Billing fields to the existing views/importer without dropping raw fields."""
+    normalized = dict(invoice)
+    if not normalized.get("invoice_number"):
+        normalized["invoice_number"] = invoice.get("number")
+    if not normalized.get("date"):
+        normalized["date"] = invoice.get("invoice_date")
+    if not isinstance(normalized.get("line_items"), list):
+        normalized["line_items"] = invoice.get("invoice_items")
+    return normalized
+
+
+def _normalized_unit(value):
+    unit = str(value or "").strip().casefold().rstrip(".")
+    return {
+        "kgs": "kg", "kilogram": "kg", "kilograms": "kg",
+        "l": "l", "ltr": "l", "ltrs": "l", "litre": "l", "litres": "l",
+        "liter": "l", "liters": "l",
+    }.get(unit, unit)
+
+
 def verify_webhook_secret(provided_secret):
     expected = _required_setting("ZOHO_WEBHOOK_SECRET")
     return bool(provided_secret) and secrets.compare_digest(expected, provided_secret)
@@ -128,14 +166,10 @@ def fetch_invoice(invoice_id):
     if not invoice_id or len(invoice_id) > 120 or not invoice_id.isdigit():
         raise ZohoInvoiceError("A valid Zoho invoice ID is required.")
 
-    api_base = _base_url(
-        "ZOHO_API_BASE_URL", "https://www.zohoapis.in/books/v3"
-    )
-    organization_id = _required_setting("ZOHO_ORGANIZATION_ID")
-    query = urlencode({"organization_id": organization_id})
+    api_base = _billing_api_base()
     request = Request(
-        f"{api_base}/invoices/{invoice_id}?{query}",
-        headers={"Authorization": f"Zoho-oauthtoken {_refresh_access_token()}"},
+        f"{api_base}/invoices/{invoice_id}",
+        headers=_billing_headers(),
         method="GET",
     )
     try:
@@ -152,7 +186,7 @@ def fetch_invoice(invoice_id):
     invoice = data.get("invoice")
     if not isinstance(invoice, dict):
         raise ZohoAPIError("Zoho did not return an invoice.")
-    return invoice
+    return _normalize_invoice(invoice)
 
 
 def list_invoices(page=1):
@@ -163,11 +197,11 @@ def list_invoices(page=1):
         raise ZohoInvoiceError("A valid invoice page is required.") from exc
     if page < 1 or page > 10000:
         raise ZohoInvoiceError("A valid invoice page is required.")
-    api_base = _base_url("ZOHO_API_BASE_URL", "https://www.zohoapis.in/books/v3")
-    query = urlencode({"organization_id": _required_setting("ZOHO_ORGANIZATION_ID"), "page": page, "per_page": 25})
+    api_base = _billing_api_base()
+    query = urlencode({"page": page, "per_page": 25})
     request = Request(
         f"{api_base}/invoices?{query}",
-        headers={"Authorization": f"Zoho-oauthtoken {_refresh_access_token()}"},
+        headers=_billing_headers(),
         method="GET",
     )
     try:
@@ -183,7 +217,7 @@ def list_invoices(page=1):
     context = data.get("page_context") or {}
     if isinstance(context, list):
         context = context[0] if context else {}
-    return invoices, bool(context.get("has_more_page")) if isinstance(context, dict) else False
+    return [_normalize_invoice(invoice) for invoice in invoices], bool(context.get("has_more_page")) if isinstance(context, dict) else False
 
 
 def _resolve_local_items(line_items):
@@ -192,16 +226,19 @@ def _resolve_local_items(line_items):
     missing = []
     try:
         with conn.cursor() as cur:
-            cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS zoho_item_id VARCHAR(120)")
+            cur.execute("ALTER TABLE beans ADD COLUMN IF NOT EXISTS zoho_billing_item_id VARCHAR(120)")
             cur.execute(
                 """
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_beans_zoho_item_id
-                ON beans(zoho_item_id) WHERE zoho_item_id IS NOT NULL
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_beans_zoho_billing_item_id
+                ON beans(zoho_billing_item_id) WHERE zoho_billing_item_id IS NOT NULL
                 """
             )
             for line in line_items:
-                zoho_item_id = str(line.get("item_id") or "").strip()
+                if not isinstance(line, dict):
+                    raise ZohoInvoiceError("Zoho Billing returned an invalid invoice line.")
+                zoho_item_id = str(line.get("item_id") or line.get("product_id") or "").strip()
                 name = str(line.get("name") or "").strip()
+                description = str(line.get("description") or "").strip()
                 try:
                     quantity = float(line.get("quantity"))
                 except (TypeError, ValueError) as exc:
@@ -209,37 +246,51 @@ def _resolve_local_items(line_items):
                 if not math.isfinite(quantity) or quantity <= 0:
                     raise ZohoInvoiceError(f"Invalid quantity for Zoho item '{name or zoho_item_id}'.")
 
-                cur.execute("SELECT * FROM beans WHERE zoho_item_id = %s", (zoho_item_id,))
-                bean = cur.fetchone()
+                bean = None
+                if description:
+                    cur.execute("SELECT * FROM beans WHERE LOWER(name) = LOWER(%s)", (description,))
+                    bean = cur.fetchone()
+                if bean is None and zoho_item_id:
+                    cur.execute("SELECT * FROM beans WHERE zoho_billing_item_id = %s", (zoho_item_id,))
+                    bean = cur.fetchone()
                 if bean is None and name:
                     cur.execute(
                         """
                         SELECT * FROM beans
                         WHERE LOWER(name) = LOWER(%s)
-                          AND (zoho_item_id IS NULL OR zoho_item_id = %s)
+                          AND (zoho_billing_item_id IS NULL OR zoho_billing_item_id = %s)
                         """,
                         (name, zoho_item_id),
                     )
                     bean = cur.fetchone()
-                    if bean and zoho_item_id:
+                    if bean and zoho_item_id and (not description or description.casefold() == name.casefold()):
                         cur.execute(
-                            "UPDATE beans SET zoho_item_id = %s WHERE id = %s",
+                            "UPDATE beans SET zoho_billing_item_id = %s WHERE id = %s",
                             (zoho_item_id, bean["id"]),
                         )
                 if bean is None:
-                    missing.append(name or zoho_item_id or "Unnamed item")
+                    missing.append(f"{name} ({description})" if description else name or zoho_item_id or "Unnamed item")
                 else:
+                    invoice_unit = _normalized_unit(line.get("unit"))
+                    catalog_unit = _normalized_unit(bean["unit"])
+                    if invoice_unit and invoice_unit != catalog_unit:
+                        raise ZohoInvoiceError(
+                            f"Unit mismatch for '{name or description}': Billing uses {line['unit']}, "
+                            f"but the catalog uses {bean['unit']}."
+                        )
                     resolved.append({"bean_id": bean["id"], "quantity": quantity})
+        if missing:
+            raise ZohoInvoiceError(
+                "No matching local catalog item for: " + ", ".join(sorted(set(missing)))
+            )
+        if not resolved:
+            raise ZohoInvoiceError("The Zoho invoice has no usable line items.")
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         release_connection(conn)
-
-    if missing:
-        raise ZohoInvoiceError(
-            "No matching local catalog item for: " + ", ".join(sorted(set(missing)))
-        )
-    if not resolved:
-        raise ZohoInvoiceError("The Zoho invoice has no usable line items.")
     return resolved
 
 
@@ -263,6 +314,6 @@ def import_invoice(invoice_id):
         customer_name=str(invoice.get("customer_name") or "Zoho customer").strip(),
         items=items,
         notes=notes[:255],
-        external_source="zoho_invoice",
+        external_source="zoho_billing_invoice",
         external_id=str(invoice.get("invoice_id") or invoice_id),
     )

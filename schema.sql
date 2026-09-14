@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS beans (
     item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans',
     bean_type VARCHAR(20),
     zoho_item_id VARCHAR(120),
+    zoho_billing_item_id VARCHAR(120),
     current_stock NUMERIC(10, 2) NOT NULL DEFAULT 0,
     low_stock_threshold NUMERIC(10, 2) NOT NULL DEFAULT 2,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -18,8 +19,11 @@ CREATE TABLE IF NOT EXISTS beans (
 ALTER TABLE beans ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) NOT NULL DEFAULT 'coffee_beans';
 ALTER TABLE beans ADD COLUMN IF NOT EXISTS bean_type VARCHAR(20);
 ALTER TABLE beans ADD COLUMN IF NOT EXISTS zoho_item_id VARCHAR(120);
+ALTER TABLE beans ADD COLUMN IF NOT EXISTS zoho_billing_item_id VARCHAR(120);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_beans_zoho_item_id
     ON beans(zoho_item_id) WHERE zoho_item_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_beans_zoho_billing_item_id
+    ON beans(zoho_billing_item_id) WHERE zoho_billing_item_id IS NOT NULL;
 
 -- Immutable log of every stock increase. This is the only table that
 -- is allowed to raise a bean's stock.

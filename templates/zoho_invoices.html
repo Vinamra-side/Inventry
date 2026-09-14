@@ -2,7 +2,7 @@
 {% block title %}Zoho invoices{% endblock %}
 {% block mobile_title %}Zoho invoices{% endblock %}
 {% block content %}
-<section class="page-head"><div><div class="eyebrow">ZOHO BOOKS</div><h1>Invoices</h1><p class="subtitle">Fetched directly from Zoho. Viewing invoices does not create orders or change stock.</p></div><a class="button secondary" href="{{ url_for('orders') }}">Back to orders</a></section>
+<section class="page-head"><div><div class="eyebrow">ZOHO BILLING</div><h1>Invoices</h1><p class="subtitle">Fetched directly from Zoho Billing. Viewing invoices does not create orders or change stock.</p></div><a class="button secondary" href="{{ url_for('orders') }}">Back to orders</a></section>
 <section class="panel">
   {% if error %}<p role="alert" class="zoho-error">Unable to fetch invoices: {{ error }}</p>{% endif %}
   {% if invoices %}

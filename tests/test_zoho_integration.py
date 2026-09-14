@@ -6,7 +6,9 @@ No network, Zoho account, or PostgreSQL database is used. Run with:
 
 import json
 from io import BytesIO
+from contextlib import redirect_stdout
 import os
+import sys
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -28,6 +30,40 @@ class DummyResponse:
         return json.dumps(self.payload).encode("utf-8")
 
 
+class MappingConnection:
+    def __init__(self):
+        self.beans = {
+            "Agglomerated 100%": {"id": 11, "name": "Agglomerated 100%", "unit": "kg"},
+            "Decoction 70/30": {"id": 12, "name": "Decoction 70/30", "unit": "L"},
+        }
+        self.row = None
+        self.committed = False
+        self.rolled_back = False
+
+    def cursor(self):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def execute(self, query, params=None):
+        self.row = None
+        if "SELECT * FROM beans WHERE LOWER(name)" in query:
+            self.row = self.beans.get(params[0])
+
+    def fetchone(self):
+        return self.row
+
+    def commit(self):
+        self.committed = True
+
+    def rollback(self):
+        self.rolled_back = True
+
+
 class ZohoIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.settings = patch.dict(
@@ -39,7 +75,7 @@ class ZohoIntegrationTests(unittest.TestCase):
                 "ZOHO_ORGANIZATION_ID": "123456789",
                 "ZOHO_WEBHOOK_SECRET": "dummy-webhook-secret",
                 "ZOHO_ACCOUNTS_URL": "https://accounts.zoho.in",
-                "ZOHO_API_BASE_URL": "https://www.zohoapis.in/books/v3",
+                "ZOHO_API_BASE_URL": "https://www.zohoapis.in/billing/v1",
             },
             clear=False,
         )
@@ -61,9 +97,10 @@ class ZohoIntegrationTests(unittest.TestCase):
                 {
                     "invoice": {
                         "invoice_id": "90001",
-                        "invoice_number": "INV-90001",
+                        "number": "INV-90001",
+                        "invoice_date": "2026-09-14",
                         "customer_name": "Dummy Cafe",
-                        "line_items": [{"name": "Coffee", "quantity": 2}],
+                        "invoice_items": [{"name": "Coffee", "quantity": 2, "price": 100}],
                         "billing_address": {"address": "Test Street"},
                         "tax_total": 25,
                     }
@@ -74,14 +111,17 @@ class ZohoIntegrationTests(unittest.TestCase):
             invoice = zoho_service.fetch_invoice("90001")
 
         self.assertEqual(invoice["customer_name"], "Dummy Cafe")
+        self.assertEqual(invoice["invoice_number"], "INV-90001")
+        self.assertEqual(invoice["date"], "2026-09-14")
         self.assertEqual(invoice["line_items"][0]["quantity"], 2)
         self.assertEqual(invoice["billing_address"]["address"], "Test Street")
         self.assertEqual(invoice["tax_total"], 25)
         self.assertEqual(len(requests), 2)
         token_request, invoice_request = requests[0][0], requests[1][0]
         self.assertEqual(token_request.get_method(), "POST")
-        self.assertIn("organization_id=123456789", invoice_request.full_url)
+        self.assertEqual(invoice_request.full_url, "https://www.zohoapis.in/billing/v1/invoices/90001")
         self.assertEqual(invoice_request.get_header("Authorization"), "Zoho-oauthtoken dummy-access")
+        self.assertEqual(invoice_request.get_header("X-com-zoho-subscriptions-organizationid"), "123456789")
 
     def test_lists_invoices_without_importing_orders(self):
         requests = []
@@ -90,7 +130,7 @@ class ZohoIntegrationTests(unittest.TestCase):
             requests.append(request)
             if request.full_url.endswith("/oauth/v2/token"):
                 return DummyResponse({"access_token": "dummy-access", "expires_in": 3600})
-            return DummyResponse({"invoices": [{"invoice_id": "90001", "invoice_number": "INV-90001"}],
+            return DummyResponse({"invoices": [{"invoice_id": "90001", "number": "INV-90001", "invoice_date": "2026-09-14"}],
                                   "page_context": {"has_more_page": True}})
 
         with patch.object(zoho_service, "urlopen", side_effect=dummy_urlopen), patch.object(
@@ -98,10 +138,61 @@ class ZohoIntegrationTests(unittest.TestCase):
         ) as create_order:
             invoices, has_next = zoho_service.list_invoices(2)
         self.assertEqual(invoices[0]["invoice_id"], "90001")
+        self.assertEqual(invoices[0]["invoice_number"], "INV-90001")
         self.assertTrue(has_next)
         self.assertIn("/invoices?", requests[-1].full_url)
         self.assertIn("page=2", requests[-1].full_url)
+        self.assertNotIn("organization_id=", requests[-1].full_url)
+        self.assertEqual(requests[-1].get_header("X-com-zoho-subscriptions-organizationid"), "123456789")
         create_order.assert_not_called()
+
+    def test_rejects_old_books_api_setting_before_calling_zoho(self):
+        with patch.dict(os.environ, {"ZOHO_API_BASE_URL": "https://www.zohoapis.in/books/v3"}), patch.object(
+            zoho_service, "urlopen"
+        ) as urlopen_mock:
+            with self.assertRaisesRegex(zoho_service.ZohoConfigurationError, "Billing"):
+                zoho_service.list_invoices()
+        urlopen_mock.assert_not_called()
+
+    def test_oauth_helper_requests_billing_invoice_scope(self):
+        from scripts import zoho_oauth_setup
+
+        output = BytesIO()
+        class TextSink:
+            def write(self, value):
+                output.write(value.encode("utf-8"))
+            def flush(self):
+                pass
+
+        with patch.object(sys, "argv", ["zoho_oauth_setup.py", "--region", "in", "--product", "billing",
+                                        "--redirect-uri", "https://example.com/callback"]), redirect_stdout(TextSink()):
+            zoho_oauth_setup.main()
+        self.assertIn(b"ZohoSubscriptions.invoices.READ", output.getvalue())
+
+    def test_billing_variants_make_two_distinct_order_lines(self):
+        conn = MappingConnection()
+        lines = [
+            {"item_id": "generic", "name": "Instant coffee", "description": "Agglomerated 100%", "unit": "kgs", "quantity": 2},
+            {"item_id": "generic", "name": "Decoction", "description": "Decoction 70/30", "unit": "litres", "quantity": 3},
+        ]
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            items = zoho_service._resolve_local_items(lines)
+        self.assertEqual(items, [{"bean_id": 11, "quantity": 2.0}, {"bean_id": 12, "quantity": 3.0}])
+        self.assertTrue(conn.committed)
+
+    def test_unit_mismatch_rolls_back_mapping(self):
+        conn = MappingConnection()
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            with self.assertRaisesRegex(zoho_service.ZohoInvoiceError, "Unit mismatch"):
+                zoho_service._resolve_local_items([
+                    {"item_id": "12", "name": "Decoction", "description": "Decoction 70/30", "unit": "kg", "quantity": 1}
+                ])
+        self.assertFalse(conn.committed)
+        self.assertTrue(conn.rolled_back)
 
     def test_zoho_400_includes_safe_response_message(self):
         def dummy_urlopen(request, timeout):
@@ -132,9 +223,10 @@ class ZohoIntegrationTests(unittest.TestCase):
         import app as app_module
         from flask import session
 
-        invoice = {"invoice_id": "90001", "invoice_number": "INV-90001", "customer_name": "Cafe",
-                   "line_items": [{"name": "Coffee", "description": "Medium roast", "item_id": "77", "quantity": 2}],
+        invoice = zoho_service._normalize_invoice({"invoice_id": "90001", "number": "INV-90001", "invoice_date": "2026-09-14", "customer_name": "Cafe",
+                   "invoice_items": [{"name": "Coffee", "description": "Medium roast", "item_id": "77", "quantity": 2, "price": 100}],
                    "billing_address": {"address": "Test Street"}, "tax_total": 25}
+        )
         with patch.object(app_module, "_license_is_active", return_value=(True, None)), patch.object(
             app_module, "list_invoices", return_value=([invoice], False)
         ), patch.object(app_module, "fetch_invoice", return_value=invoice), patch(
@@ -148,6 +240,8 @@ class ZohoIntegrationTests(unittest.TestCase):
         self.assertIn(b"INV-90001", listing.data)
         self.assertIn(b"90001", listing.data)
         self.assertIn(b"Medium roast", detail.data)
+        self.assertIn(b"100", detail.data)
+        self.assertIn(b"ZOHO BILLING", detail.data)
         self.assertIn(b"Test Street", detail.data)
         self.assertIn(b"tax_total", detail.data)
         self.assertEqual(detail.headers["Cache-Control"], "private, no-store")
@@ -156,11 +250,11 @@ class ZohoIntegrationTests(unittest.TestCase):
     def test_invoice_becomes_one_multi_item_order_and_retry_is_idempotent(self):
         invoice = {
             "invoice_id": "90002",
-            "invoice_number": "INV-90002",
+            "number": "INV-90002",
             "customer_name": "Dummy Roastery",
             "notes": "Deliver to the front counter",
             "status": "sent",
-            "line_items": [
+            "invoice_items": [
                 {"item_id": "z-1", "name": "Green Arabica", "quantity": 4},
                 {"item_id": "z-2", "name": "Instant Coffee", "quantity": 2},
             ],
@@ -183,7 +277,7 @@ class ZohoIntegrationTests(unittest.TestCase):
             }
 
         with (
-            patch.object(zoho_service, "fetch_invoice", return_value=invoice),
+            patch.object(zoho_service, "fetch_invoice", return_value=zoho_service._normalize_invoice(invoice)),
             patch.object(zoho_service, "_resolve_local_items", return_value=mapped_items),
             patch.object(zoho_service, "create_order", side_effect=dummy_create_order) as create,
         ):
@@ -194,6 +288,7 @@ class ZohoIntegrationTests(unittest.TestCase):
         self.assertFalse(retry["created_from_external"])
         self.assertEqual(first["id"], retry["id"])
         self.assertEqual(create.call_args.kwargs["items"], mapped_items)
+        self.assertEqual(create.call_args.kwargs["external_source"], "zoho_billing_invoice")
         self.assertIn("INV-90002", create.call_args.kwargs["notes"])
 
     def test_rejects_void_invoice(self):

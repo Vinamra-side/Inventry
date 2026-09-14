@@ -32,13 +32,17 @@ def main():
     parser = argparse.ArgumentParser(description="Set up direct Zoho invoice OAuth access.")
     parser.add_argument("--region", choices=sorted(REGIONS), default="in")
     parser.add_argument("--redirect-uri", required=True)
-    parser.add_argument("--product", choices=("inventory", "books"), default="inventory")
+    parser.add_argument("--product", choices=("inventory", "books", "billing"), default="billing")
     parser.add_argument("--code", help="One-time grant code returned by Zoho")
     args = parser.parse_args()
 
     accounts_url = REGIONS[args.region]
     client_id = required("ZOHO_CLIENT_ID")
-    scope = "ZohoInventory.invoices.READ" if args.product == "inventory" else "ZohoBooks.invoices.READ"
+    scope = {
+        "inventory": "ZohoInventory.invoices.READ",
+        "books": "ZohoBooks.invoices.READ",
+        "billing": "ZohoSubscriptions.invoices.READ",
+    }[args.product]
 
     if not args.code:
         query = urlencode(

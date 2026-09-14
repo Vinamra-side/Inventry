@@ -33,7 +33,7 @@
         <thead><tr><th>Customer</th><th>Invoice</th><th>Items</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th><th></th></tr></thead>
         <tbody>{% for order in orders %}<tr>
           <td><strong>{{ order.customer_name }}</strong></td>
-          <td>{% if order.external_source == 'zoho_billing_invoice' and order.external_id %}{% if session.get('role') == 'admin' %}<a href="{{ url_for('zoho_invoice_detail', invoice_id=order.external_id) }}">{{ order.external_id }}</a>{% else %}{{ order.external_id }}{% endif %}{% elif order.external_source == 'zoho_invoice' and order.external_id %}{{ order.external_id }}{% else %}<span class="muted-cell">—</span>{% endif %}</td>
+          <td>{% if order.external_source == 'zoho_billing_invoice' and order.external_id %}{% if session.get('role') == 'admin' %}<a href="{{ url_for('zoho_invoice_detail', invoice_id=order.external_id) }}">{{ order.invoice_number or order.external_id }}</a>{% else %}{{ order.invoice_number or order.external_id }}{% endif %}{% elif order.external_source == 'zoho_invoice' and order.external_id %}{{ order.external_id }}{% else %}<span class="muted-cell">—</span>{% endif %}</td>
           <td><div class="order-items-list">{% for item in order['items'] %}<span>{{ item.name }}</span>{% endfor %}</div></td>
           <td class="number"><div class="order-items-list">{% for item in order['items'] %}<span>{{ "%g"|format(item.quantity|float) }} {{ item.unit }}</span>{% endfor %}</div></td>
           <td class="order-notes-cell">
@@ -43,7 +43,7 @@
               {% else %}<span class="muted-cell">{{ order.notes }}</span>{% endif %}
             {% else %}<span class="muted-cell">—</span>{% endif %}
           </td>
-          <td><span class="badge {{ 'cancelled' if order.status == 'cancelled' else ('ok' if order.status in ['delivered','fulfilled'] else 'low') }}">{{ order.status|replace('_', ' ')|title }}</span></td>
+          <td><span class="badge {{ 'cancelled' if order.status == 'cancelled' else ('ok' if order.status in ['delivered','fulfilled','historical'] else 'low') }}">{{ 'Imported history' if order.status == 'historical' else order.status|replace('_', ' ')|title }}</span></td>
           <td class="muted-cell">{{ order.created_at.strftime("%d %b %Y · %H:%M") }}</td>
           <td>{% if order.status == 'pending_delivery' %}<form method="POST" action="{{ url_for('cancel_order_route', order_id=order.id) }}" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="table-action">Cancel</button></form>{% endif %}</td>
         </tr>{% endfor %}</tbody>

@@ -5,6 +5,7 @@ No network, Zoho account, or PostgreSQL database is used. Run with:
 """
 
 import json
+from datetime import date, timedelta
 from io import BytesIO
 from contextlib import redirect_stdout
 import os
@@ -14,6 +15,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 
 import zoho_service
+import services
 
 
 class DummyResponse:
@@ -64,6 +66,38 @@ class MappingConnection:
         self.rolled_back = True
 
 
+class ArchiveConnection:
+    def __init__(self):
+        self.calls = []
+        self.order = None
+        self.committed = False
+        self.rolled_back = False
+
+    def cursor(self):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def execute(self, query, params=None):
+        sql = " ".join(query.split())
+        self.calls.append((sql, params))
+        if sql.startswith("INSERT INTO orders"):
+            self.order = {"id": 42, "status": "historical", "external_id": "90001"}
+
+    def fetchone(self):
+        return self.order if self.calls[-1][0].startswith("INSERT INTO orders") else None
+
+    def commit(self):
+        self.committed = True
+
+    def rollback(self):
+        self.rolled_back = True
+
+
 class ZohoIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.settings = patch.dict(
@@ -85,6 +119,51 @@ class ZohoIntegrationTests(unittest.TestCase):
 
     def tearDown(self):
         self.settings.stop()
+
+    def test_historical_invoice_saves_every_line_without_touching_stock(self):
+        conn = ArchiveConnection()
+        invoice = {
+            "invoice_id": "90001", "invoice_number": "INV-90001",
+            "date": (date.today() - timedelta(days=2)).isoformat(),
+            "customer_name": "Cafe", "status": "paid",
+            "line_items": [
+                {"name": "Bean A", "quantity": 2, "unit": "kg"},
+                {"name": "Bean B", "description": "Roasted Bean B", "quantity": 3, "unit": "kg"},
+            ],
+        }
+        with patch.object(services, "get_connection", return_value=conn), patch.object(
+            services, "release_connection"
+        ), patch.object(services, "_ensure_order_items_schema"):
+            order = services.archive_zoho_invoice(invoice)
+
+        sql = " ".join(statement for statement, _ in conn.calls)
+        self.assertTrue(conn.committed)
+        self.assertEqual(order["status"], "historical")
+        self.assertEqual([item["name"] for item in order["items"]], ["Bean A", "Roasted Bean B"])
+        self.assertEqual(sql.count("INSERT INTO order_items"), 2)
+        self.assertNotIn("UPDATE beans", sql)
+        self.assertNotIn("INSERT INTO stock_movements", sql)
+
+    def test_historical_import_rejects_current_invoice(self):
+        with self.assertRaisesRegex(ValueError, "Only past invoices"):
+            services.archive_zoho_invoice({
+                "invoice_id": "90002", "date": date.today().isoformat(),
+                "line_items": [{"name": "Bean", "quantity": 1}],
+            })
+
+    def test_historical_lines_remain_visible_without_catalog_items(self):
+        class LinesCursor:
+            def execute(self, query, params):
+                self.order_ids = params[0]
+
+            def fetchall(self):
+                return [
+                    {"order_id": 42, "bean_id": None, "name": "Bean A", "unit": "kg", "quantity": 2},
+                    {"order_id": 42, "bean_id": None, "name": "Bean B", "unit": "L", "quantity": 3},
+                ]
+
+        rows = services._attach_order_items(LinesCursor(), [{"id": 42, "status": "historical"}])
+        self.assertEqual(rows[0]["item_summary"], "Bean A · 2 kg, Bean B · 3 L")
 
     def test_fetches_invoice_with_refreshed_token(self):
         requests = []

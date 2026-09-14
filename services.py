@@ -19,6 +19,7 @@ never end up out of sync if something fails partway through.
 """
 
 import math
+import json
 import re
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -71,6 +72,13 @@ def _ensure_order_items_schema(conn):
         cur.execute("CREATE INDEX IF NOT EXISTS idx_order_items_bean_id ON order_items(bean_id)")
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_source VARCHAR(30)")
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_id VARCHAR(120)")
+        cur.execute("ALTER TABLE orders ALTER COLUMN bean_id DROP NOT NULL")
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(120)")
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_payload JSONB")
+        cur.execute("ALTER TABLE order_items ALTER COLUMN bean_id DROP NOT NULL")
+        cur.execute("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_name VARCHAR(255)")
+        cur.execute("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_unit VARCHAR(30)")
+        cur.execute("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS external_line JSONB")
         cur.execute(
             """
             CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_external_source_id
@@ -81,7 +89,7 @@ def _ensure_order_items_schema(conn):
         cur.execute(
             """
             INSERT INTO order_items (order_id, bean_id, quantity)
-            SELECT id, bean_id, quantity FROM orders
+            SELECT id, bean_id, quantity FROM orders WHERE bean_id IS NOT NULL
             ON CONFLICT (order_id, bean_id) DO NOTHING
             """
         )
@@ -100,9 +108,10 @@ def _attach_order_items(cur, orders):
     cur.execute(
         """
         SELECT order_items.order_id, order_items.bean_id, order_items.quantity,
-               beans.name, beans.unit
+               COALESCE(order_items.item_name, beans.name) AS name,
+               COALESCE(order_items.item_unit, beans.unit, '') AS unit
         FROM order_items
-        JOIN beans ON beans.id = order_items.bean_id
+        LEFT JOIN beans ON beans.id = order_items.bean_id
         WHERE order_items.order_id = ANY(%s)
         ORDER BY order_items.id ASC
         """,
@@ -116,6 +125,90 @@ def _attach_order_items(cur, orders):
             for item in order["items"]
         )
     return result
+
+
+def archive_zoho_invoice(invoice):
+    """Save a past Billing invoice in order history without changing stock."""
+    invoice_id = str(invoice.get("invoice_id") or "").strip()
+    if not invoice_id.isdigit() or len(invoice_id) > 120:
+        raise ValueError("A valid Zoho invoice ID is required.")
+    if str(invoice.get("status") or "").casefold() in {"void", "voided", "cancelled"}:
+        raise ValueError("Cancelled or void invoices cannot be imported.")
+    try:
+        invoice_date = date.fromisoformat(str(invoice.get("date") or "")[:10])
+    except ValueError as exc:
+        raise ValueError("The Zoho invoice needs a valid date for history import.") from exc
+    if invoice_date >= date.today():
+        raise ValueError("Only past invoices can be imported into history; current invoices use the webhook.")
+    lines = invoice.get("line_items")
+    if not isinstance(lines, list) or not lines:
+        raise ValueError("The Zoho invoice has no line items.")
+    prepared = []
+    for line in lines:
+        if not isinstance(line, dict):
+            raise ValueError("The Zoho invoice contains an invalid line item.")
+        name = str(line.get("description") or line.get("name") or "").strip()
+        if not name:
+            raise ValueError("Every invoice line needs an item name or description.")
+        try:
+            quantity = Decimal(str(line.get("quantity")))
+        except (InvalidOperation, TypeError) as exc:
+            raise ValueError(f"Invalid quantity for {name}.") from exc
+        if not quantity.is_finite() or quantity <= 0 or quantity > Decimal("99999999.99"):
+            raise ValueError(f"Invalid quantity for {name}.")
+        prepared.append((name[:255], str(line.get("unit") or "").strip()[:30], quantity, line))
+
+    customer = str(invoice.get("customer_name") or "Zoho customer").strip()[:120]
+    number = str(invoice.get("invoice_number") or invoice_id).strip()[:120]
+    notes = str(invoice.get("notes") or "").strip()[:255] or None
+    conn = get_connection()
+    try:
+        _ensure_order_items_schema(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"zoho_billing_invoice:{invoice_id}",))
+            cur.execute(
+                "SELECT * FROM orders WHERE external_source = %s AND external_id = %s",
+                ("zoho_billing_invoice", invoice_id),
+            )
+            existing = cur.fetchone()
+            if existing:
+                result = _attach_order_items(cur, [existing])[0]
+                result["created_from_external"] = False
+                conn.commit()
+                return result
+            cur.execute(
+                """
+                INSERT INTO orders (
+                    bean_id, customer_name, quantity, status, notes, created_at,
+                    external_source, external_id, invoice_number, external_payload
+                ) VALUES (NULL, %s, %s, 'historical', %s, %s, %s, %s, %s, %s::jsonb)
+                RETURNING *
+                """,
+                (customer, prepared[0][2], notes, invoice_date,
+                 "zoho_billing_invoice", invoice_id, number, json.dumps(invoice)),
+            )
+            order = cur.fetchone()
+            for name, unit, quantity, line in prepared:
+                cur.execute(
+                    """
+                    INSERT INTO order_items (order_id, bean_id, quantity, item_name, item_unit, external_line)
+                    VALUES (%s, NULL, %s, %s, %s, %s::jsonb)
+                    """,
+                    (order["id"], quantity, name, unit, json.dumps(line)),
+                )
+        conn.commit()
+        result = dict(order)
+        result["items"] = [
+            {"name": name, "unit": unit, "quantity": quantity, "bean_id": None}
+            for name, unit, quantity, _ in prepared
+        ]
+        result["created_from_external"] = True
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        release_connection(conn)
 
 
 def _validate_text(value, label, max_length):

@@ -25,6 +25,7 @@ from services import (
     LicenseLimitError,
     NotFoundError,
     add_bean,
+    archive_zoho_invoice,
     add_inventory,
     roast_beans,
     add_subscriber,
@@ -170,6 +171,23 @@ def register_routes(app):
         response.headers["Cache-Control"] = "private, no-store"
         return response
 
+    @app.route("/zoho-invoices/import-queue")
+    @admin_required
+    def zoho_invoice_import_queue():
+        try:
+            invoices, has_next = list_invoices(request.args.get("page", 1, type=int))
+            return jsonify({
+                "ok": True,
+                "invoice_ids": [str(invoice["invoice_id"]) for invoice in invoices if invoice.get("invoice_id")],
+                "has_next": has_next,
+            })
+        except ZohoConfigurationError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 503
+        except ZohoAPIError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 502
+        except ZohoInvoiceError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 422
+
     @app.route("/zoho-invoices/<invoice_id>")
     @admin_required
     def zoho_invoice_detail(invoice_id):
@@ -184,6 +202,32 @@ def register_routes(app):
         ))
         response.headers["Cache-Control"] = "private, no-store"
         return response
+
+    @app.route("/zoho-invoices/<invoice_id>/import-history", methods=["POST"])
+    @admin_required
+    def zoho_invoice_import_history(invoice_id):
+        try:
+            order = archive_zoho_invoice(fetch_invoice(invoice_id))
+            result = {
+                "ok": True,
+                "created": bool(order["created_from_external"]),
+                "order_id": order["id"],
+            }
+            status = 201 if result["created"] else 200
+        except ZohoConfigurationError as exc:
+            result, status = {"ok": False, "error": str(exc)}, 503
+        except ZohoAPIError as exc:
+            result, status = {"ok": False, "error": str(exc)}, 502
+        except (ZohoInvoiceError, ValueError) as exc:
+            result, status = {"ok": False, "error": str(exc)}, 422
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify(result), status
+        flash(
+            f"Invoice added to Order History as order #{result['order_id']}." if result["ok"]
+            else result["error"],
+            "success" if result["ok"] else "error",
+        )
+        return redirect(url_for("zoho_invoices", page=max(1, request.form.get("page", 1, type=int))))
 
 
     @app.route("/login", methods=["GET", "POST"])

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS inventory_additions (
 
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
-    bean_id INTEGER NOT NULL REFERENCES beans(id),
+    bean_id INTEGER REFERENCES beans(id),
     customer_name VARCHAR(120) NOT NULL,
     quantity NUMERIC(10, 2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending_delivery',
@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS orders (
     delivered_at TIMESTAMPTZ,
     external_source VARCHAR(30),
     external_id VARCHAR(120),
+    invoice_number VARCHAR(120),
+    external_payload JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     cancelled_at TIMESTAMPTZ
 );
@@ -55,19 +57,30 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_date DATE;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_source VARCHAR(30);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_id VARCHAR(120);
+ALTER TABLE orders ALTER COLUMN bean_id DROP NOT NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(120);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_payload JSONB;
 
 -- Line items allow one customer order to contain multiple catalog items.
 -- The legacy bean_id/quantity columns remain populated for compatibility.
 CREATE TABLE IF NOT EXISTS order_items (
     id SERIAL PRIMARY KEY,
     order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    bean_id INTEGER NOT NULL REFERENCES beans(id),
+    bean_id INTEGER REFERENCES beans(id),
     quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
+    item_name VARCHAR(255),
+    item_unit VARCHAR(30),
+    external_line JSONB,
     UNIQUE (order_id, bean_id)
 );
 
+ALTER TABLE order_items ALTER COLUMN bean_id DROP NOT NULL;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_unit VARCHAR(30);
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS external_line JSONB;
+
 INSERT INTO order_items (order_id, bean_id, quantity)
-SELECT id, bean_id, quantity FROM orders
+SELECT id, bean_id, quantity FROM orders WHERE bean_id IS NOT NULL
 ON CONFLICT (order_id, bean_id) DO NOTHING;
 
 -- A complete ledger makes additions, order deductions, and cancellations

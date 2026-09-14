@@ -2,10 +2,12 @@
 {% block title %}Zoho invoices{% endblock %}
 {% block mobile_title %}Zoho invoices{% endblock %}
 {% block content %}
-<section class="page-head"><div><div class="eyebrow">ZOHO BILLING</div><h1>Invoices</h1><p class="subtitle">Fetched directly from Zoho Billing. Viewing invoices does not create orders or change stock.</p></div><a class="button secondary" href="{{ url_for('orders') }}">Back to orders</a></section>
+<section class="page-head"><div><div class="eyebrow">ZOHO BILLING</div><h1>Invoices</h1><p class="subtitle">Import past invoices into Order History without changing stock. Current invoices continue through the webhook.</p></div><a class="button secondary" href="{{ url_for('orders') }}">Back to orders</a></section>
 <section class="panel">
   {% if error %}<p role="alert" class="zoho-error">Unable to fetch invoices: {{ error }}</p>{% endif %}
   {% if invoices %}
+  <div class="panel-head"><div><strong>Historical import</strong><p class="subtitle">All line items are saved as shown on each invoice. No stock is deducted.</p></div><div><button type="button" class="button secondary" id="import-visible-invoices">Import this page</button> <button type="button" class="button secondary" id="import-all-invoices">Import all past invoices</button></div></div>
+  <p id="import-progress" role="status" aria-live="polite"></p>
   <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Zoho ID</th><th>Customer</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody>
   {% for invoice in invoices %}<tr>
     <td><strong>{{ invoice.invoice_number or invoice.invoice_id }}</strong></td>
@@ -14,10 +16,67 @@
     <td>{{ invoice.date or '—' }}</td>
     <td>{{ invoice.status or '—' }}</td>
     <td>{{ invoice.currency_code or '' }} {{ invoice.total if invoice.total is not none else '—' }}</td>
-    <td>{% if invoice.invoice_id %}<a class="button secondary" href="{{ url_for('zoho_invoice_detail', invoice_id=invoice.invoice_id) }}">Full invoice</a>{% endif %}</td>
+    <td>{% if invoice.invoice_id %}<a class="button secondary" href="{{ url_for('zoho_invoice_detail', invoice_id=invoice.invoice_id) }}">Full invoice</a><form class="inline-form historical-import-form" method="POST" action="{{ url_for('zoho_invoice_import_history', invoice_id=invoice.invoice_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="page" value="{{ page }}"><button type="submit" class="table-action">Import to history</button></form>{% endif %}</td>
   </tr>{% endfor %}
   </tbody></table></div>
   {% elif not error %}<p>No invoices returned by this Zoho organization.</p>{% endif %}
   {% if page > 1 or has_next %}<nav class="pagination" aria-label="Zoho invoice pages">{% if page > 1 %}<a class="button secondary" href="{{ url_for('zoho_invoices', page=page-1) }}">← Previous</a>{% endif %}{% if has_next %}<a class="button secondary" href="{{ url_for('zoho_invoices', page=page+1) }}">Next →</a>{% endif %}</nav>{% endif %}
 </section>
+<script>
+  (function () {
+    const pageButton = document.getElementById('import-visible-invoices');
+    const allButton = document.getElementById('import-all-invoices');
+    const progress = document.getElementById('import-progress');
+    if (!pageButton || !allButton || !progress) return;
+    const csrf = document.querySelector('.historical-import-form [name="csrf_token"]').value;
+    const importTemplate = {{ url_for('zoho_invoice_import_history', invoice_id='INVOICE_ID')|tojson }};
+    const queueUrl = {{ url_for('zoho_invoice_import_queue')|tojson }};
+    async function importIds(ids, label) {
+      let imported = 0, existing = 0, skipped = 0, firstError = '';
+      for (let i = 0; i < ids.length; i++) {
+        progress.textContent = `${label}: ${i + 1} of ${ids.length}…`;
+        try {
+          const response = await fetch(importTemplate.replace('INVOICE_ID', encodeURIComponent(ids[i])), {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-CSRF-Token': csrf },
+          });
+          const result = await response.json();
+          if (result.ok) result.created ? imported++ : existing++;
+          else { skipped++; firstError ||= result.error || 'Import failed'; }
+        } catch (error) { skipped++; firstError ||= 'Connection failed'; }
+      }
+      return { imported, existing, skipped, firstError };
+    }
+    function setBusy(busy) { pageButton.disabled = busy; allButton.disabled = busy; }
+    pageButton.addEventListener('click', async function () {
+      setBusy(true);
+      try {
+        const ids = [...document.querySelectorAll('.historical-import-form')].map(form => form.action.split('/').at(-2));
+        const result = await importIds(ids, 'This page');
+        progress.textContent = `Done: ${result.imported} imported, ${result.existing} already present, ${result.skipped} skipped.${result.firstError ? ` First issue: ${result.firstError}.` : ''} Open Order History to review.`;
+      } finally { setBusy(false); }
+    });
+    allButton.addEventListener('click', async function () {
+      if (!window.confirm('Import all past Zoho invoices into Order History? This will not change stock. Keep this tab open until it finishes.')) return;
+      setBusy(true);
+      let imported = 0, existing = 0, skipped = 0, firstError = '', page = 1;
+      try {
+        while (page <= 10000) {
+          progress.textContent = `Loading Zoho invoice page ${page}…`;
+          const response = await fetch(`${queueUrl}?page=${page}`, { credentials: 'same-origin' });
+          const batch = await response.json();
+          if (!response.ok || !batch.ok) throw new Error(batch.error || 'Could not load invoices');
+          const result = await importIds(batch.invoice_ids, `Page ${page}`);
+          imported += result.imported; existing += result.existing; skipped += result.skipped;
+          firstError ||= result.firstError;
+          if (!batch.has_next) break;
+          page++;
+        }
+        progress.textContent = `Done: ${imported} imported, ${existing} already present, ${skipped} skipped.${firstError ? ` First issue: ${firstError}.` : ''} Open Order History to review.`;
+      } catch (error) {
+        progress.textContent = `Stopped on page ${page}: ${error.message}. ${imported} imported, ${existing} already present, ${skipped} skipped. You can run this again safely.`;
+      } finally { setBusy(false); }
+    });
+  }());
+</script>
 {% endblock %}

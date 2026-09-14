@@ -8,10 +8,17 @@ ChatGPT, Zapier, or Zoho connector app.
 An administrator can open **Orders → View Zoho invoices** to browse Zoho Billing's
 invoice list and open the full invoice detail returned by the Zoho API. The
 detail page includes every returned field in an expandable JSON section.
-This is a read-only connection check: viewing old invoices does **not** create
-orders or deduct current stock. It works even if the Zoho webhook workflow has
-not fired. The page is not a permanent copy of the invoice; it fetches from
-Zoho each time. It requires a working Zoho Billing refresh token, Billing
+Simply viewing invoices does **not** create orders or deduct current stock.
+An admin can select **Import to history** for one past invoice, **Import this
+page** for the current 25-invoice page, or **Import all past invoices** to
+process every Zoho page sequentially while the browser tab stays open.
+Historical imports store every
+invoice line, the invoice date/number, and the complete invoice JSON snapshot
+in local order history without catalog matching or stock deductions. They are
+idempotent by Zoho invoice ID; cancelled/void and current-day invoices are not
+history-imported. Current-day invoices continue through the webhook.
+The invoice list works even if the Zoho webhook workflow has not fired. It
+requires a working Zoho Billing refresh token, Billing
 organization ID, and the `/billing/v1` API base.
 
 For automatic order creation, the webhook workflow is still required:

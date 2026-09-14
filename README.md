@@ -4,8 +4,8 @@ Flask inventory and order management application adapted for Vercel serverless h
 
 See **VERCEL_DEPLOYMENT.md** for the complete deployment procedure.
 
-See **ZOHO_INTEGRATION.md** to configure direct invoice-to-order imports from
-Zoho Inventory or Zoho Books.
+See **ZOHO_INTEGRATION.md** to configure Zoho Billing invoice-to-order imports
+and the stock-neutral historical invoice backfill.
 
 ### Architecture
 

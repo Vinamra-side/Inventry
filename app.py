@@ -34,6 +34,7 @@ from services import (
     get_bean,
     get_license_status,
     get_insights,
+    is_past_zoho_invoice,
     list_beans,
     list_deliveries,
     list_orders,
@@ -162,6 +163,11 @@ def register_routes(app):
         page = max(1, request.args.get("page", 1, type=int))
         try:
             invoices, has_next = list_invoices(page)
+            for invoice in invoices:
+                try:
+                    invoice["historical_eligible"] = is_past_zoho_invoice(invoice)
+                except ValueError:
+                    invoice["historical_eligible"] = False
             error = None
         except (ZohoConfigurationError, ZohoAPIError, ZohoInvoiceError) as exc:
             invoices, has_next, error = [], False, str(exc)
@@ -176,9 +182,16 @@ def register_routes(app):
     def zoho_invoice_import_queue():
         try:
             invoices, has_next = list_invoices(request.args.get("page", 1, type=int))
+            eligible_ids = []
+            for invoice in invoices:
+                try:
+                    if invoice.get("invoice_id") and is_past_zoho_invoice(invoice):
+                        eligible_ids.append(str(invoice["invoice_id"]))
+                except ValueError:
+                    continue
             return jsonify({
                 "ok": True,
-                "invoice_ids": [str(invoice["invoice_id"]) for invoice in invoices if invoice.get("invoice_id")],
+                "invoice_ids": eligible_ids,
                 "has_next": has_next,
             })
         except ZohoConfigurationError as exc:
@@ -224,6 +237,28 @@ def register_routes(app):
             return jsonify(result), status
         flash(
             f"Invoice added to Order History as order #{result['order_id']}." if result["ok"]
+            else result["error"],
+            "success" if result["ok"] else "error",
+        )
+        return redirect(url_for("zoho_invoices", page=max(1, request.form.get("page", 1, type=int))))
+
+    @app.route("/zoho-invoices/<invoice_id>/import-order", methods=["POST"])
+    @admin_required
+    def zoho_invoice_import_order(invoice_id):
+        try:
+            order = import_invoice(invoice_id)
+            result = {"ok": True, "created": bool(order["created_from_external"]), "order_id": order["id"]}
+            status = 201 if result["created"] else 200
+        except ZohoConfigurationError as exc:
+            result, status = {"ok": False, "error": str(exc)}, 503
+        except ZohoAPIError as exc:
+            result, status = {"ok": False, "error": str(exc)}, 502
+        except (ZohoInvoiceError, InsufficientStockError, InvalidQuantityError, NotFoundError, ValueError) as exc:
+            result, status = {"ok": False, "error": str(exc)}, 422
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify(result), status
+        flash(
+            f"Invoice imported as order #{result['order_id']}." if result["ok"]
             else result["error"],
             "success" if result["ok"] else "error",
         )

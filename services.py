@@ -21,7 +21,7 @@ never end up out of sync if something fails partway through.
 import math
 import json
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
 
@@ -127,6 +127,16 @@ def _attach_order_items(cur, orders):
     return result
 
 
+def is_past_zoho_invoice(invoice):
+    """Use the Billing organization's India business date for backfill eligibility."""
+    try:
+        invoice_date = date.fromisoformat(str(invoice.get("date") or "")[:10])
+    except ValueError as exc:
+        raise ValueError("The Zoho invoice needs a valid date for history import.") from exc
+    india_today = datetime.now(timezone(timedelta(hours=5, minutes=30))).date()
+    return invoice_date < india_today
+
+
 def archive_zoho_invoice(invoice):
     """Save a past Billing invoice in order history without changing stock."""
     invoice_id = str(invoice.get("invoice_id") or "").strip()
@@ -134,12 +144,9 @@ def archive_zoho_invoice(invoice):
         raise ValueError("A valid Zoho invoice ID is required.")
     if str(invoice.get("status") or "").casefold() in {"void", "voided", "cancelled"}:
         raise ValueError("Cancelled or void invoices cannot be imported.")
-    try:
-        invoice_date = date.fromisoformat(str(invoice.get("date") or "")[:10])
-    except ValueError as exc:
-        raise ValueError("The Zoho invoice needs a valid date for history import.") from exc
-    if invoice_date >= date.today():
+    if not is_past_zoho_invoice(invoice):
         raise ValueError("Only past invoices can be imported into history; current invoices use the webhook.")
+    invoice_date = date.fromisoformat(str(invoice["date"])[:10])
     lines = invoice.get("line_items")
     if not isinstance(lines, list) or not lines:
         raise ValueError("The Zoho invoice has no line items.")

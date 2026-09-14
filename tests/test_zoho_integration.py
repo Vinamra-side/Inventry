@@ -151,6 +151,32 @@ class ZohoIntegrationTests(unittest.TestCase):
                 "line_items": [{"name": "Bean", "quantity": 1}],
             })
 
+    def test_current_invoice_uses_active_order_action_not_history(self):
+        import app as app_module
+
+        current = {"invoice_id": "90002", "invoice_number": "INV-90002", "date": date.today().isoformat()}
+        past = {"invoice_id": "90001", "invoice_number": "INV-90001", "date": (date.today() - timedelta(days=2)).isoformat()}
+        with patch.object(app_module, "_license_is_active", return_value=(True, None)), patch.object(
+            app_module, "list_invoices", return_value=([current, past], False)
+        ), patch("auth._current_active_user", return_value={"role": "admin"}), patch.object(
+            app_module, "import_invoice", return_value={"id": 77, "created_from_external": True}
+        ) as active_import, patch.object(app_module, "archive_zoho_invoice") as history_import:
+            client = app_module.app.test_client()
+            with client.session_transaction() as session:
+                session["csrf_token"] = "test-csrf-token"
+            listing = client.get("/zoho-invoices")
+            queue = client.get("/zoho-invoices/import-queue")
+            imported = client.post(
+                "/zoho-invoices/90002/import-order",
+                headers={"Accept": "application/json", "X-CSRF-Token": "test-csrf-token"},
+            )
+        self.assertIn(b"Import as order", listing.data)
+        self.assertIn(b"Import to history", listing.data)
+        self.assertEqual(queue.json["invoice_ids"], ["90001"])
+        self.assertEqual(imported.status_code, 201)
+        active_import.assert_called_once_with("90002")
+        history_import.assert_not_called()
+
     def test_historical_lines_remain_visible_without_catalog_items(self):
         class LinesCursor:
             def execute(self, query, params):

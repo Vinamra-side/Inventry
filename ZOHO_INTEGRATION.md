@@ -16,7 +16,10 @@ Historical imports store every
 invoice line, the invoice date/number, and the complete invoice JSON snapshot
 in local order history without catalog matching or stock deductions. They are
 idempotent by Zoho invoice ID; cancelled/void and current-day invoices are not
-history-imported. Current-day invoices continue through the webhook.
+history-imported. For a current-day invoice, an admin can use **Import as order**
+to create the active order immediately (with catalog matching and stock deduction)
+if the webhook has not done so already. The webhook uses the same invoice ID and
+will not create a duplicate later.
 The invoice list works even if the Zoho webhook workflow has not fired. It
 requires a working Zoho Billing refresh token, Billing
 organization ID, and the `/billing/v1` API base.

@@ -23,6 +23,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
 
+from blend_recipes import blend_components
 from db import get_connection, release_connection
 
 
@@ -115,7 +116,8 @@ def _attach_order_items(cur, orders):
         SELECT order_items.order_id, order_items.bean_id, order_items.quantity,
                COALESCE(order_items.item_name, beans.name) AS name,
                COALESCE(order_items.item_unit, beans.unit, '') AS unit,
-               beans.current_stock
+               beans.current_stock, beans.item_type AS catalog_item_type,
+               beans.bean_type AS catalog_bean_type
         FROM order_items
         LEFT JOIN beans ON beans.id = order_items.bean_id
         WHERE order_items.order_id = ANY(%s)
@@ -123,14 +125,52 @@ def _attach_order_items(cur, orders):
         """,
         (list(order_map),),
     )
-    for item in cur.fetchall():
+    lines = cur.fetchall()
+    source_names = {
+        source_name
+        for item in lines
+        if order_map[item["order_id"]]["status"] == "pending_delivery"
+        and not order_map[item["order_id"]].get("stock_deducted", True)
+        for source_name in (blend_components(item["name"] or "", Decimal(str(item["quantity"]))) or {})
+    }
+    source_rows = {}
+    for source_name in sorted(source_names):
+        cur.execute("SELECT id, name, unit, item_type, bean_type, current_stock FROM beans WHERE name = %s", (source_name,))
+        source_rows[source_name] = cur.fetchone()
+    remaining_by_order = {}
+    for item in lines:
         order = order_map[item["order_id"]]
         item = dict(item)
         if order["status"] == "pending_delivery":
-            item["available"] = bool(order.get("stock_deducted", True)) or (
-                item["current_stock"] is not None
-                and Decimal(str(item["current_stock"])) >= Decimal(str(item["quantity"]))
-            )
+            if order.get("stock_deducted", True):
+                item["available"] = True
+            else:
+                budget = remaining_by_order.setdefault(item["order_id"], {})
+                components = blend_components(item["name"] or "", Decimal(str(item["quantity"])))
+                if components is None:
+                    required = {item["bean_id"]: Decimal(str(item["quantity"]))}
+                    if item["bean_id"] not in budget:
+                        budget[item["bean_id"]] = (
+                            Decimal(str(item["current_stock"])) if item["current_stock"] is not None else Decimal(0)
+                        )
+                else:
+                    required = {}
+                    if item["unit"] != "kg" or item.get("catalog_item_type") != "coffee_beans" or item.get("catalog_bean_type") != "roasted":
+                        required[None] = Decimal(str(item["quantity"]))
+                    else:
+                        for source_name, amount in components.items():
+                            source = source_rows[source_name]
+                            if source is None or source["unit"] != "kg" or source.get("item_type") != "coffee_beans" or source.get("bean_type") != "roasted":
+                                required[None] = amount
+                                continue
+                            required[source["id"]] = required.get(source["id"], Decimal(0)) + amount
+                            budget.setdefault(source["id"], Decimal(str(source["current_stock"])))
+                item["available"] = None not in required and all(
+                    budget.get(bean_id, Decimal(0)) >= amount for bean_id, amount in required.items()
+                )
+                if item["available"]:
+                    for bean_id, amount in required.items():
+                        budget[bean_id] -= amount
         else:
             item["available"] = None
         order["items"].append(item)
@@ -706,18 +746,41 @@ def mark_order_delivered(order_id):
                 items = cur.fetchall()
                 if not items:
                     raise ValueError("This order has no items to deliver.")
-                selected = []
+                requirements = {}
+                sources = {}
                 for item in items:
-                    cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (item["bean_id"],))
+                    cur.execute("SELECT * FROM beans WHERE id = %s", (item["bean_id"],))
                     bean = cur.fetchone()
                     if bean is None:
                         raise NotFoundError("An item in this order is no longer in the catalog.")
-                    if Decimal(str(bean["current_stock"])) < Decimal(str(item["quantity"])):
+                    components = blend_components(bean["name"], Decimal(str(item["quantity"])))
+                    if components is None:
+                        requirements[bean["id"]] = requirements.get(bean["id"], Decimal(0)) + Decimal(str(item["quantity"]))
+                        continue
+                    if bean["unit"] != "kg" or bean.get("item_type") != "coffee_beans" or bean.get("bean_type") != "roasted":
+                        raise ValueError(f"Roasted blend '{bean['name']}' must use kg and coffee beans.")
+                    for source_name, amount in components.items():
+                        if source_name not in sources:
+                            cur.execute("SELECT * FROM beans WHERE name = %s", (source_name,))
+                            source = cur.fetchone()
+                            if source is None or source["unit"] != "kg" or source.get("item_type") != "coffee_beans" or source.get("bean_type") != "roasted":
+                                raise NotFoundError(f"Roasted source stock '{source_name}' is missing or misconfigured.")
+                            sources[source_name] = source["id"]
+                        source_id = sources[source_name]
+                        requirements[source_id] = requirements.get(source_id, Decimal(0)) + amount
+                selected = []
+                for bean_id in sorted(requirements):
+                    cur.execute("SELECT * FROM beans WHERE id = %s FOR UPDATE", (bean_id,))
+                    bean = cur.fetchone()
+                    if bean is None:
+                        raise NotFoundError("A stock source in this order is no longer in the catalog.")
+                    required = requirements[bean_id]
+                    if Decimal(str(bean["current_stock"])) < required:
                         raise InsufficientStockError(
                             f"Only {bean['current_stock']} {bean['unit']} of {bean['name']} available; "
-                            f"{item['quantity']} {bean['unit']} required to deliver this order."
+                            f"{required} {bean['unit']} required to deliver this order."
                         )
-                    selected.append((bean, item["quantity"]))
+                    selected.append((bean, required))
                 for bean, quantity in selected:
                     cur.execute(
                         "UPDATE beans SET current_stock = current_stock - %s WHERE id = %s",

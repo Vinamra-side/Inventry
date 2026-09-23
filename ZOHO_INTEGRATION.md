@@ -44,6 +44,17 @@ item cannot be matched. Insufficient local stock does not prevent order creation
 the item appears red until stock arrives, and delivery is blocked until enough
 stock is available.
 
+Roasted blends and named brews in `data/blend_mapping.json` consume their
+specified proportions of the local **100% Arabica Blend** and **100% Robusta
+Blend** roasted stock when delivered. The two 100% items themselves consume
+their own stock. Both source catalog items must exist as roasted `kg` items
+and must be stocked before a blended order can be delivered. The app checks
+the combined requirement across all lines of a single order and records one
+movement per source stock item. Historical invoices and already-delivered
+orders are not retroactively deducted. If finished blends have already been
+stocked directly, reconcile those balances before using this recipe workflow;
+the recipe deduction does not consume a finished blend's own balance.
+
 Zoho and local item quantities must use the same unit; this service does not
 perform automatic unit conversion.
 

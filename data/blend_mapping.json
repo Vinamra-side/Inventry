@@ -1,5 +1,5 @@
 {
-  "description": "Catalog naming and composition reference. This file does not create stock or change order deductions.",
+  "description": "Roasted blend recipes used to check source availability and deduct source stock on delivery. Existing delivered orders are not changed.",
   "source": "Item.xlsx, Item!B2:B40; user-confirmed rules",
   "rules": {
     "commercial_blend": "The first percentage is Robusta; the second is Arabica.",

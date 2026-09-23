@@ -8,6 +8,7 @@ local catalog, and creates one idempotent local order.
 import json
 import math
 import os
+import re
 import secrets
 import threading
 import time
@@ -87,6 +88,64 @@ def _normalized_unit(value):
         "l": "l", "ltr": "l", "ltrs": "l", "litre": "l", "litres": "l",
         "liter": "l", "liters": "l",
     }.get(unit, unit)
+
+
+def _decoction_catalog_name(name, description):
+    """Use the billed unit to select the category, and the ratio to select its SKU."""
+    ratios = set(re.findall(r"(?<!\d)(?:\d{1,3}/\d{1,3}|100%)(?!\d)", f"{name} {description}"))
+    if len(ratios) != 1:
+        return None
+    ratio = ratios.pop()
+    if ratio == "100%":
+        species = set(re.findall(r"\b(arabica|robusta)\b", f"{name} {description}", re.I))
+        if len(species) == 1:
+            return f"Decoction 100% {species.pop().title()}"
+        if species:
+            return None
+        return "Decoction 100%"
+    if ratio not in {"70/30", "80/20"}:
+        return None
+    return f"Decoction {ratio}"
+
+
+def _resolve_litre_decoction(cur, name, description, zoho_item_id):
+    canonical = _decoction_catalog_name(name, description)
+    if zoho_item_id:
+        cur.execute("SELECT * FROM beans WHERE zoho_billing_item_id = %s", (zoho_item_id,))
+        linked = cur.fetchone()
+        # A Billing item ID can also appear on a kg line. The billed unit and
+        # explicit decoction ratio take precedence; do not rebind that ID.
+        if linked and not canonical and (linked.get("item_type") != "decoction" or
+                                     _normalized_unit(linked["unit"]) != "l"):
+            raise ZohoInvoiceError(
+                f"Billing item '{name or zoho_item_id}' is linked to a conflicting catalog item."
+            )
+    else:
+        linked = None
+    if canonical:
+        cur.execute("SELECT * FROM beans WHERE LOWER(name) = LOWER(%s)", (canonical,))
+        bean = cur.fetchone()
+        if bean is None:
+            cur.execute(
+                """INSERT INTO beans (name, unit, item_type, bean_type)
+                   VALUES (%s, 'L', 'decoction', NULL)
+                   ON CONFLICT (name) DO NOTHING""",
+                (canonical,),
+            )
+            cur.execute("SELECT * FROM beans WHERE name = %s", (canonical,))
+            bean = cur.fetchone()
+    else:
+        bean = linked
+        if bean is None:
+            for candidate in (name, description):
+                if candidate:
+                    cur.execute("SELECT * FROM beans WHERE LOWER(name) = LOWER(%s)", (candidate,))
+                    bean = cur.fetchone()
+                    if bean:
+                        break
+    if bean and (bean.get("item_type") != "decoction" or _normalized_unit(bean["unit"]) != "l"):
+        raise ZohoInvoiceError(f"Catalog item '{bean['name']}' is not a decoction in litres.")
+    return bean
 
 
 def verify_webhook_secret(provided_secret):
@@ -247,6 +306,16 @@ def _resolve_local_items(line_items):
                 if not math.isfinite(quantity) or quantity <= 0:
                     raise ZohoInvoiceError(f"Invalid quantity for Zoho item '{name or zoho_item_id}'.")
 
+                invoice_unit = _normalized_unit(line.get("unit"))
+                if invoice_unit == "l":
+                    bean = _resolve_litre_decoction(cur, name, description, zoho_item_id)
+                    if bean is None:
+                        missing.append(f"{name or zoho_item_id or 'Unnamed item'} (decoction in L; ratio unclear)")
+                    else:
+                        resolved.append({"bean_id": bean["id"], "quantity": quantity,
+                                         "catalog_name": bean["name"], "unit": bean["unit"]})
+                    continue
+
                 # The item name identifies stock. Descriptions such as roast
                 # levels are order notes, not separate catalog identities.
                 bean = None
@@ -304,7 +373,6 @@ def _resolve_local_items(line_items):
                 if bean is None:
                     missing.append(name or zoho_item_id or "Unnamed item")
                 else:
-                    invoice_unit = _normalized_unit(line.get("unit"))
                     catalog_unit = _normalized_unit(bean["unit"])
                     if invoice_unit and invoice_unit != catalog_unit:
                         raise ZohoInvoiceError(

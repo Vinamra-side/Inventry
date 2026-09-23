@@ -36,7 +36,7 @@ class MappingConnection:
     def __init__(self):
         self.beans = {
             "Agglomerated 100%": {"id": 11, "name": "Agglomerated 100%", "unit": "kg"},
-            "Decoction 70/30": {"id": 12, "name": "Decoction 70/30", "unit": "L"},
+            "Decoction 70/30": {"id": 12, "name": "Decoction 70/30", "unit": "L", "item_type": "decoction"},
         }
         self.row = None
         self.calls = []
@@ -65,8 +65,11 @@ class MappingConnection:
             self.row = next((bean for bean in self.beans.values()
                              if bean.get("zoho_billing_item_id") == params[0]), None)
         elif "INSERT INTO beans (name, unit, item_type, bean_type)" in sql:
+            is_decoction = "'decoction'" in sql
             self.beans.setdefault(params[0], {"id": len(self.beans) + 20, "name": params[0],
-                                            "unit": "kg", "item_type": "coffee_beans", "bean_type": "roasted"})
+                                            "unit": "L" if is_decoction else "kg",
+                                            "item_type": "decoction" if is_decoction else "coffee_beans",
+                                            "bean_type": None if is_decoction else "roasted"})
 
     def fetchone(self):
         return self.row
@@ -340,6 +343,79 @@ class ZohoIntegrationTests(unittest.TestCase):
             create.call_args.kwargs["notes"],
         )
         self.assertIn("70/30 AA Blend", conn.beans)
+
+    def test_litre_blend_maps_to_decoction_and_keeps_invoice_description(self):
+        conn = MappingConnection()
+        invoice = zoho_service._normalize_invoice({
+            "invoice_id": "90007", "number": "INV-90007", "customer_name": "Cafe",
+            "invoice_items": [{"item_id": "litre-blend", "name": "70/30 Arabica Robusta Blend",
+                               "description": "Ready-to-serve", "unit": "litres", "quantity": 5}],
+        })
+        with patch.object(zoho_service, "fetch_invoice", return_value=invoice), patch.object(
+            zoho_service, "get_connection", return_value=conn
+        ), patch.object(zoho_service, "release_connection"), patch.object(
+            zoho_service, "create_order", return_value={"id": 52}
+        ) as create:
+            zoho_service.import_invoice("90007")
+        self.assertEqual(create.call_args.kwargs["items"], [
+            {"bean_id": 12, "quantity": 5.0, "catalog_name": "Decoction 70/30", "unit": "L"},
+        ])
+        self.assertIn("Zoho: 70/30 Arabica Robusta Blend", create.call_args.kwargs["notes"])
+        self.assertIn("Ready-to-serve", create.call_args.kwargs["notes"])
+        self.assertNotIn("70/30 AA Blend", conn.beans)
+
+    def test_litre_100_percent_species_have_distinct_decoction_items(self):
+        conn = MappingConnection()
+        lines = [
+            {"item_id": "a", "name": "100% Arabica Blend", "unit": "L", "quantity": 2},
+            {"item_id": "r", "name": "100% Robusta Blend", "unit": "ltr", "quantity": 3},
+        ]
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            items = zoho_service._resolve_local_items(lines)
+        self.assertEqual([item["catalog_name"] for item in items],
+                         ["Decoction 100% Arabica", "Decoction 100% Robusta"])
+        self.assertEqual([item["unit"] for item in items], ["L", "L"])
+        self.assertEqual([conn.beans[item["catalog_name"]]["item_type"] for item in items],
+                         ["decoction", "decoction"])
+
+    def test_litre_line_overrides_billing_id_linked_to_roasted_stock(self):
+        conn = MappingConnection()
+        conn.beans["Agglomerated 100%"]["zoho_billing_item_id"] = "linked"
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            items = zoho_service._resolve_local_items([
+                {"item_id": "linked", "name": "70/30 Arabica Robusta Blend",
+                 "unit": "litres", "quantity": 1},
+            ])
+        self.assertEqual(items[0]["catalog_name"], "Decoction 70/30")
+        self.assertEqual(conn.beans["Agglomerated 100%"]["zoho_billing_item_id"], "linked")
+
+    def test_litre_line_with_unknown_ratio_requires_catalog_review(self):
+        conn = MappingConnection()
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            with self.assertRaisesRegex(zoho_service.ZohoInvoiceError, "ratio unclear"):
+                zoho_service._resolve_local_items([
+                    {"item_id": "unknown", "name": "65/35 Blend", "unit": "litres", "quantity": 1},
+                ])
+        self.assertNotIn("65/35 AA Blend", conn.beans)
+        self.assertTrue(conn.rolled_back)
+
+    def test_litre_line_rejects_wrong_catalog_category(self):
+        conn = MappingConnection()
+        conn.beans["Decoction 70/30"]["item_type"] = "coffee_beans"
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            with self.assertRaisesRegex(zoho_service.ZohoInvoiceError, "not a decoction"):
+                zoho_service._resolve_local_items([
+                    {"item_id": "wrong-type", "name": "70/30 Blend", "unit": "L", "quantity": 1},
+                ])
+        self.assertTrue(conn.rolled_back)
 
     def test_conflicting_saved_billing_id_cannot_remap_a_known_blend(self):
         conn = MappingConnection()

@@ -40,6 +40,13 @@ For automatic order creation, the webhook workflow is still required:
    corresponding `70/30 AA Blend` (70% Arabica, 30% Robusta); reversed
    `Robusta Arabica` names map to Commercial blends. The original Zoho name
    remains visible in the order note when it differs from the catalog name.
+   A line billed in litres (`L`, `ltr`, `litres`, etc.) is mapped to a
+   **decoction** catalog item before roasted-blend matching, even if its Zoho
+   name says "Blend". A 70/30 or 80/20 line maps to `Decoction 70/30` or
+   `Decoction 80/20`; 100% Arabica and 100% Robusta map to separate
+   `Decoction 100% Arabica` and `Decoction 100% Robusta` items. Missing known
+   decoction items are created with zero stock. An unclear or conflicting
+   ratio needs catalog review rather than a guess.
 5. The order notes list each mapped catalog item, quantity, and its Zoho line
    description. The invoice-level note follows those lines; the complete
    invoice JSON and invoice number are also stored on the order.
@@ -65,7 +72,8 @@ stocked directly, reconcile those balances before using this recipe workflow;
 the recipe deduction does not consume a finished blend's own balance.
 
 Zoho and local item quantities must use the same unit; this service does not
-perform automatic unit conversion.
+perform automatic unit conversion. Litre-based decoction stock is deducted
+directly on delivery, not through the roasted-bean blend recipe.
 
 ## Environment configuration
 

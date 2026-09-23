@@ -43,6 +43,8 @@ INSERT INTO confirmed_catalog_import (name, item_type, bean_type, unit) VALUES
 ('Decoction 70/30', 'decoction', NULL, 'L'),
 ('Decoction 80/20', 'decoction', NULL, 'L'),
 ('Decoction 100%', 'decoction', NULL, 'L'),
+('Decoction 100% Arabica', 'decoction', NULL, 'L'),
+('Decoction 100% Robusta', 'decoction', NULL, 'L'),
 ('Matcha Ceremonial', 'herbal_teas', NULL, 'kg'),
 ('Matcha Culinary', 'herbal_teas', NULL, 'kg'),
 ('Matcha A Grade', 'herbal_teas', NULL, 'kg'),

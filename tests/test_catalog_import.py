@@ -23,11 +23,13 @@ class CatalogImportTests(unittest.TestCase):
         start = SQL.index('INSERT INTO beans')
         return self.db.execute(SQL[start:SQL.index(';', start)]).fetchall()
 
-    def test_all_33_items_and_units(self):
-        self.assertEqual(len(self.run_import()), 33)
-        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM beans WHERE unit='L' AND item_type='decoction'").fetchone()[0], 3)
+    def test_all_35_items_and_units(self):
+        self.assertEqual(len(self.run_import()), 35)
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM beans WHERE unit='L' AND item_type='decoction'").fetchone()[0], 5)
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM beans WHERE unit='kg'").fetchone()[0], 30)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM beans WHERE current_stock=0 AND low_stock_threshold=2').fetchone()[0], 33)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM beans WHERE current_stock=0 AND low_stock_threshold=2').fetchone()[0], 35)
+        self.assertEqual({row[0] for row in self.db.execute("SELECT name FROM beans WHERE name LIKE 'Decoction 100% %'")},
+                         {'Decoction 100% Arabica', 'Decoction 100% Robusta'})
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM beans WHERE bean_type='green'").fetchone()[0], 8)
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM beans WHERE bean_type='roasted'").fetchone()[0], 5)
 
@@ -37,7 +39,7 @@ class CatalogImportTests(unittest.TestCase):
 
     def test_preserves_existing_stock_units_and_categories(self):
         self.db.execute("INSERT INTO beans VALUES (1, ' arabica cherry aa ', 'coffee_beans', NULL, 'lb', 25, 10)")
-        self.assertEqual(len(self.run_import()), 32)
+        self.assertEqual(len(self.run_import()), 34)
         self.assertEqual(self.db.execute('SELECT unit, current_stock, low_stock_threshold, bean_type FROM beans WHERE id=1').fetchone(), ('lb', 25, 10, None))
 
     def test_flavours(self):

@@ -7,15 +7,22 @@ from pathlib import Path
 
 SOURCE_ARABICA = "100% Arabica Blend"
 SOURCE_ROBUSTA = "100% Robusta Blend"
-_RECIPES = json.loads(
+_MAPPING = json.loads(
     (Path(__file__).resolve().parent / "data" / "blend_mapping.json").read_text(encoding="utf-8")
-)["roasted_blends"]
+)
+_RECIPES = _MAPPING["roasted_blends"]
 _BY_NAME = {row["name"].casefold(): row for row in _RECIPES}
+_ALIASES = {name.casefold(): canonical for name, canonical in _MAPPING.get("aliases", {}).items()}
+
+
+def _recipe_for_name(name: str) -> dict | None:
+    key = name.strip().casefold()
+    return _BY_NAME.get(_ALIASES.get(key, key).casefold())
 
 
 def roasted_blend_catalog_name(name: str) -> str | None:
     """Return the canonical catalog name only for an explicitly mapped blend."""
-    row = _BY_NAME.get(name.strip().casefold())
+    row = _recipe_for_name(name)
     return row["name"] if row else None
 
 
@@ -25,7 +32,7 @@ def blend_components(name: str, quantity: Decimal) -> dict[str, Decimal] | None:
     Pure 100% items are physical source stock and are deducted directly.
     Quantities match the two-decimal precision of the inventory schema.
     """
-    row = _BY_NAME.get(name.strip().casefold())
+    row = _recipe_for_name(name)
     if row is None or row["name"] in {SOURCE_ARABICA, SOURCE_ROBUSTA}:
         return None
     if "same_recipe_as" in row:

@@ -276,7 +276,7 @@ def _resolve_local_items(line_items):
                     cur.execute("SELECT * FROM beans WHERE name = %s", (canonical_blend,))
                     bean = cur.fetchone()
                 if bean is not None and canonical_blend and (
-                    bean["name"].casefold() != canonical_blend.casefold()
+                    roasted_blend_catalog_name(bean["name"]) != canonical_blend
                     or bean.get("item_type") != "coffee_beans"
                     or bean.get("bean_type") != "roasted"
                     or bean["unit"] != "kg"

@@ -5,7 +5,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import services
-from blend_recipes import blend_components
+from blend_recipes import blend_components, roasted_blend_catalog_name
 
 
 class BlendCursor:
@@ -70,6 +70,15 @@ class BlendStockTests(unittest.TestCase):
             "100% Arabica Blend": Decimal("1.00"), "100% Robusta Blend": Decimal("4.00")})
         self.assertEqual(blend_components("Signature Brew", Decimal("5")), {
             "100% Arabica Blend": Decimal("3.00"), "100% Robusta Blend": Decimal("2.00")})
+
+    def test_explicit_species_order_maps_to_the_correct_existing_recipe(self):
+        self.assertEqual(roasted_blend_catalog_name("70/30 Arabica Robusta Blend"), "70/30 AA Blend")
+        self.assertEqual(blend_components("70/30 Arabica Robusta Blend", Decimal("10")), {
+            "100% Arabica Blend": Decimal("7.00"), "100% Robusta Blend": Decimal("3.00")})
+        self.assertEqual(roasted_blend_catalog_name("70/30 Robusta Arabica Blend"), "70/30 Commercial Blend")
+        self.assertEqual(blend_components("70/30 Robusta Arabica Blend", Decimal("10")), {
+            "100% Arabica Blend": Decimal("3.00"), "100% Robusta Blend": Decimal("7.00")})
+        self.assertIsNone(roasted_blend_catalog_name("90/10 Arabica Robusta Blend"))
 
     def test_multi_blend_delivery_deducts_aggregated_sources_once(self):
         conn = BlendConnection()

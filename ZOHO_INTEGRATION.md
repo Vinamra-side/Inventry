@@ -36,6 +36,10 @@ For automatic order creation, the webhook workflow is still required:
    fallback for older generic Zoho item names. Known roasted blend names in
    `data/blend_mapping.json` are created as zero-stock catalog items if missing.
    Roast descriptions are not treated as separate stock items.
+   Explicit names such as `70/30 Arabica Robusta Blend` map to the
+   corresponding `70/30 AA Blend` (70% Arabica, 30% Robusta); reversed
+   `Robusta Arabica` names map to Commercial blends. The original Zoho name
+   remains visible in the order note when it differs from the catalog name.
 5. The order notes list each mapped catalog item, quantity, and its Zoho line
    description. The invoice-level note follows those lines; the complete
    invoice JSON and invoice number are also stored on the order.

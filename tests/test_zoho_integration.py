@@ -321,6 +321,26 @@ class ZohoIntegrationTests(unittest.TestCase):
         self.assertEqual(sum("INSERT INTO beans (name" in sql for sql, _ in conn.calls), 1)
         self.assertTrue(conn.committed)
 
+    def test_zoho_species_order_alias_maps_to_aa_and_keeps_original_name_in_notes(self):
+        conn = MappingConnection()
+        invoice = zoho_service._normalize_invoice({
+            "invoice_id": "90006", "number": "INV-90006", "customer_name": "Cafe",
+            "invoice_items": [{"item_id": "blend-1", "name": "70/30 Arabica Robusta Blend",
+                               "description": "Medium roast", "unit": "kg", "quantity": 10}],
+        })
+        with patch.object(zoho_service, "fetch_invoice", return_value=invoice), patch.object(
+            zoho_service, "get_connection", return_value=conn
+        ), patch.object(zoho_service, "release_connection"), patch.object(
+            zoho_service, "create_order", return_value={"id": 51}
+        ) as create:
+            zoho_service.import_invoice("90006")
+        self.assertEqual(create.call_args.kwargs["items"][0]["catalog_name"], "70/30 AA Blend")
+        self.assertIn(
+            "70/30 AA Blend × 10 kg (Zoho: 70/30 Arabica Robusta Blend) — Medium roast",
+            create.call_args.kwargs["notes"],
+        )
+        self.assertIn("70/30 AA Blend", conn.beans)
+
     def test_conflicting_saved_billing_id_cannot_remap_a_known_blend(self):
         conn = MappingConnection()
         conn.beans["Agglomerated 100%"]["zoho_billing_item_id"] = "wrong-id"

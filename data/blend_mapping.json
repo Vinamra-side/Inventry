@@ -6,7 +6,16 @@
     "aa_blend": "The first percentage is Arabica; the second is Robusta.",
     "green_name": "An item whose name contains Green is a green bean.",
     "blend_category": "All listed blends and named brews below are roasted beans.",
-    "pure_blend": "100% Arabica Blend and 100% Robusta Blend are separate AA-grade roasted beans; 100% refers to the named bean."
+    "pure_blend": "100% Arabica Blend and 100% Robusta Blend are separate AA-grade roasted beans; 100% refers to the named bean.",
+    "explicit_species_order": "In an Arabica Robusta or Robusta Arabica invoice name, the first percentage belongs to the first named bean."
+  },
+  "aliases": {
+    "60/40 Arabica Robusta Blend": "60/40 AA Blend",
+    "70/30 Arabica Robusta Blend": "70/30 AA Blend",
+    "80/20 Arabica Robusta Blend": "80/20 AA Blend",
+    "60/40 Robusta Arabica Blend": "60/40 Commercial Blend",
+    "70/30 Robusta Arabica Blend": "70/30 Commercial Blend",
+    "80/20 Robusta Arabica Blend": "80/20 Commercial Blend"
   },
   "roasted_blends": [
     {"name": "70/30 Commercial Blend", "arabica_percent": 30, "robusta_percent": 70},

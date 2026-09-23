@@ -1,0 +1,21 @@
+{
+  "description": "Catalog naming and composition reference. This file does not create stock or change order deductions.",
+  "source": "Item.xlsx, Item!B2:B40; user-confirmed rules",
+  "rules": {
+    "commercial_blend": "The first percentage is Robusta; the second is Arabica.",
+    "aa_blend": "The first percentage is Arabica; the second is Robusta.",
+    "green_name": "An item whose name contains Green is a green bean.",
+    "blend_category": "All listed blends and named brews below are roasted beans."
+  },
+  "roasted_blends": [
+    {"name": "70/30 Commercial Blend", "arabica_percent": 30, "robusta_percent": 70},
+    {"name": "60/40 Commercial Blend", "arabica_percent": 40, "robusta_percent": 60},
+    {"name": "80/20 Commercial Blend", "arabica_percent": 20, "robusta_percent": 80},
+    {"name": "80/20 AA Blend", "arabica_percent": 80, "robusta_percent": 20},
+    {"name": "70/30 AA Blend", "arabica_percent": 70, "robusta_percent": 30},
+    {"name": "60/40 AA Blend", "arabica_percent": 60, "robusta_percent": 40},
+    {"name": "Daily Brew", "same_recipe_as": "80/20 Commercial Blend"},
+    {"name": "Signature Brew", "same_recipe_as": "60/40 AA Blend"},
+    {"name": "Reserve", "same_recipe_as": "80/20 AA Blend"}
+  ]
+}

@@ -5,7 +5,8 @@
     "commercial_blend": "The first percentage is Robusta; the second is Arabica.",
     "aa_blend": "The first percentage is Arabica; the second is Robusta.",
     "green_name": "An item whose name contains Green is a green bean.",
-    "blend_category": "All listed blends and named brews below are roasted beans."
+    "blend_category": "All listed blends and named brews below are roasted beans.",
+    "pure_blend": "100% Arabica Blend and 100% Robusta Blend are separate AA-grade roasted beans; 100% refers to the named bean."
   },
   "roasted_blends": [
     {"name": "70/30 Commercial Blend", "arabica_percent": 30, "robusta_percent": 70},
@@ -14,6 +15,8 @@
     {"name": "80/20 AA Blend", "arabica_percent": 80, "robusta_percent": 20},
     {"name": "70/30 AA Blend", "arabica_percent": 70, "robusta_percent": 30},
     {"name": "60/40 AA Blend", "arabica_percent": 60, "robusta_percent": 40},
+    {"name": "100% Arabica Blend", "bean_grade": "AA", "arabica_percent": 100, "robusta_percent": 0},
+    {"name": "100% Robusta Blend", "bean_grade": "AA", "arabica_percent": 0, "robusta_percent": 100},
     {"name": "Daily Brew", "same_recipe_as": "80/20 Commercial Blend"},
     {"name": "Signature Brew", "same_recipe_as": "60/40 AA Blend"},
     {"name": "Reserve", "same_recipe_as": "80/20 AA Blend"}

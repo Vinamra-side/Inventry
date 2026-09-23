@@ -15,8 +15,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from blend_recipes import roasted_blend_catalog_name
 from db import get_connection, release_connection
-from services import create_order
+from services import create_order, format_invoice_order_notes
 
 
 class ZohoConfigurationError(RuntimeError):
@@ -246,30 +247,62 @@ def _resolve_local_items(line_items):
                 if not math.isfinite(quantity) or quantity <= 0:
                     raise ZohoInvoiceError(f"Invalid quantity for Zoho item '{name or zoho_item_id}'.")
 
+                # The item name identifies stock. Descriptions such as roast
+                # levels are order notes, not separate catalog identities.
                 bean = None
-                if description:
-                    cur.execute("SELECT * FROM beans WHERE LOWER(name) = LOWER(%s)", (description,))
+                matched_by_name = False
+                if name:
+                    cur.execute(
+                        """SELECT * FROM beans WHERE LOWER(name) = LOWER(%s)
+                           AND (zoho_billing_item_id IS NULL OR zoho_billing_item_id = %s)""",
+                        (name, zoho_item_id),
+                    )
                     bean = cur.fetchone()
+                    matched_by_name = bean is not None
                 if bean is None and zoho_item_id:
                     cur.execute("SELECT * FROM beans WHERE zoho_billing_item_id = %s", (zoho_item_id,))
                     bean = cur.fetchone()
-                if bean is None and name:
+                canonical_blend = roasted_blend_catalog_name(name) if name else None
+                if bean is None and canonical_blend:
+                    cur.execute("SELECT * FROM beans WHERE LOWER(name) = LOWER(%s)", (canonical_blend,))
+                    bean = cur.fetchone()
+                if bean is None and canonical_blend:
+                    cur.execute(
+                        """INSERT INTO beans (name, unit, item_type, bean_type)
+                           VALUES (%s, 'kg', 'coffee_beans', 'roasted')
+                           ON CONFLICT (name) DO NOTHING""",
+                        (canonical_blend,),
+                    )
+                    cur.execute("SELECT * FROM beans WHERE name = %s", (canonical_blend,))
+                    bean = cur.fetchone()
+                if bean is not None and canonical_blend and (
+                    bean["name"].casefold() != canonical_blend.casefold()
+                    or bean.get("item_type") != "coffee_beans"
+                    or bean.get("bean_type") != "roasted"
+                    or bean["unit"] != "kg"
+                ):
+                    raise ZohoInvoiceError(f"Catalog item '{canonical_blend}' has a conflicting Billing ID or is not a roasted coffee bean in kg.")
+                if bean is None and description:
+                    # Preserve older Zoho items whose generic name needs an
+                    # exact variant description to identify the catalog item.
                     cur.execute(
                         """
                         SELECT * FROM beans
                         WHERE LOWER(name) = LOWER(%s)
                           AND (zoho_billing_item_id IS NULL OR zoho_billing_item_id = %s)
                         """,
-                        (name, zoho_item_id),
+                        (description, zoho_item_id),
                     )
                     bean = cur.fetchone()
-                    if bean and zoho_item_id and (not description or description.casefold() == name.casefold()):
-                        cur.execute(
-                            "UPDATE beans SET zoho_billing_item_id = %s WHERE id = %s",
-                            (zoho_item_id, bean["id"]),
-                        )
+                if bean and matched_by_name and zoho_item_id and (
+                    not description or description.casefold() == name.casefold()
+                ) and not bean.get("zoho_billing_item_id"):
+                    cur.execute(
+                        "UPDATE beans SET zoho_billing_item_id = %s WHERE id = %s",
+                        (zoho_item_id, bean["id"]),
+                    )
                 if bean is None:
-                    missing.append(f"{name} ({description})" if description else name or zoho_item_id or "Unnamed item")
+                    missing.append(name or zoho_item_id or "Unnamed item")
                 else:
                     invoice_unit = _normalized_unit(line.get("unit"))
                     catalog_unit = _normalized_unit(bean["unit"])
@@ -278,7 +311,8 @@ def _resolve_local_items(line_items):
                             f"Unit mismatch for '{name or description}': Billing uses {line['unit']}, "
                             f"but the catalog uses {bean['unit']}."
                         )
-                    resolved.append({"bean_id": bean["id"], "quantity": quantity})
+                    resolved.append({"bean_id": bean["id"], "quantity": quantity,
+                                     "catalog_name": bean["name"], "unit": bean["unit"]})
         if missing:
             raise ZohoInvoiceError(
                 "No matching local catalog item for: " + ", ".join(sorted(set(missing)))
@@ -306,14 +340,14 @@ def import_invoice(invoice_id):
     items = _resolve_local_items(line_items)
     invoice_number = str(invoice.get("invoice_number") or invoice_id).strip()
     invoice_notes = str(invoice.get("notes") or "").strip()
-    notes = f"Zoho invoice {invoice_number}"
-    if invoice_notes:
-        notes = f"{notes}: {invoice_notes}"
+    notes = format_invoice_order_notes(invoice_number, line_items, items, invoice_notes)
 
     return create_order(
         customer_name=str(invoice.get("customer_name") or "Zoho customer").strip(),
         items=items,
-        notes=notes[:255],
+        notes=notes,
         external_source="zoho_billing_invoice",
         external_id=str(invoice.get("invoice_id") or invoice_id),
+        invoice_number=invoice_number,
+        external_payload=invoice,
     )

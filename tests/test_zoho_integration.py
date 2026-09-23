@@ -39,6 +39,7 @@ class MappingConnection:
             "Decoction 70/30": {"id": 12, "name": "Decoction 70/30", "unit": "L"},
         }
         self.row = None
+        self.calls = []
         self.committed = False
         self.rolled_back = False
 
@@ -52,9 +53,20 @@ class MappingConnection:
         return False
 
     def execute(self, query, params=None):
+        sql = " ".join(query.split())
+        self.calls.append((sql, params))
         self.row = None
-        if "SELECT * FROM beans WHERE LOWER(name)" in query:
+        if sql.startswith("SELECT * FROM beans") and "WHERE LOWER(name)" in sql:
+            self.row = next((bean for key, bean in self.beans.items()
+                             if key.casefold() == params[0].casefold()), None)
+        elif "SELECT * FROM beans WHERE name = %s" in sql:
             self.row = self.beans.get(params[0])
+        elif "SELECT * FROM beans WHERE zoho_billing_item_id = %s" in sql:
+            self.row = next((bean for bean in self.beans.values()
+                             if bean.get("zoho_billing_item_id") == params[0]), None)
+        elif "INSERT INTO beans (name, unit, item_type, bean_type)" in sql:
+            self.beans.setdefault(params[0], {"id": len(self.beans) + 20, "name": params[0],
+                                            "unit": "kg", "item_type": "coffee_beans", "bean_type": "roasted"})
 
     def fetchone(self):
         return self.row
@@ -139,7 +151,11 @@ class ZohoIntegrationTests(unittest.TestCase):
         sql = " ".join(statement for statement, _ in conn.calls)
         self.assertTrue(conn.committed)
         self.assertEqual(order["status"], "historical")
-        self.assertEqual([item["name"] for item in order["items"]], ["Bean A", "Roasted Bean B"])
+        self.assertEqual([item["name"] for item in order["items"]], ["Bean A", "Bean B"])
+        saved_notes = next(params[2] for statement, params in conn.calls if statement.startswith("INSERT INTO orders"))
+        self.assertEqual(saved_notes.splitlines(), [
+            "Zoho invoice INV-90001", "Bean A × 2 kg", "Bean B × 3 kg — Roasted Bean B",
+        ])
         self.assertEqual(sql.count("INSERT INTO order_items"), 2)
         self.assertNotIn("UPDATE beans", sql)
         self.assertNotIn("INSERT INTO stock_movements", sql)
@@ -284,8 +300,65 @@ class ZohoIntegrationTests(unittest.TestCase):
             zoho_service, "release_connection"
         ):
             items = zoho_service._resolve_local_items(lines)
-        self.assertEqual(items, [{"bean_id": 11, "quantity": 2.0}, {"bean_id": 12, "quantity": 3.0}])
+        self.assertEqual(items, [
+            {"bean_id": 11, "quantity": 2.0, "catalog_name": "Agglomerated 100%", "unit": "kg"},
+            {"bean_id": 12, "quantity": 3.0, "catalog_name": "Decoction 70/30", "unit": "L"},
+        ])
         self.assertTrue(conn.committed)
+
+    def test_roast_description_is_note_not_catalog_identity(self):
+        conn = MappingConnection()
+        lines = [
+            {"item_id": "variant-1", "name": "100% Arabica Blend", "description": "Med light roast", "unit": "kg", "quantity": 2},
+            {"item_id": "variant-2", "name": "100% Arabica Blend", "description": "Vienna roast", "unit": "kg", "quantity": 3},
+        ]
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            items = zoho_service._resolve_local_items(lines)
+        self.assertEqual([item["bean_id"] for item in items], [22, 22])
+        self.assertEqual([item["catalog_name"] for item in items], ["100% Arabica Blend"] * 2)
+        self.assertEqual(sum("INSERT INTO beans (name" in sql for sql, _ in conn.calls), 1)
+        self.assertTrue(conn.committed)
+
+    def test_conflicting_saved_billing_id_cannot_remap_a_known_blend(self):
+        conn = MappingConnection()
+        conn.beans["Agglomerated 100%"]["zoho_billing_item_id"] = "wrong-id"
+        with patch.object(zoho_service, "get_connection", return_value=conn), patch.object(
+            zoho_service, "release_connection"
+        ):
+            with self.assertRaisesRegex(zoho_service.ZohoInvoiceError, "conflicting Billing ID"):
+                zoho_service._resolve_local_items([
+                    {"item_id": "wrong-id", "name": "100% Arabica Blend", "description": "Med roast",
+                     "unit": "kg", "quantity": 1},
+                ])
+        self.assertTrue(conn.rolled_back)
+
+    def test_import_keeps_each_roast_description_with_its_mapped_item(self):
+        conn = MappingConnection()
+        invoice = zoho_service._normalize_invoice({
+            "invoice_id": "90005", "number": "INV-90005", "customer_name": "Cafe",
+            "notes": "Leave at reception", "invoice_items": [
+                {"item_id": "a-1", "name": "100% Arabica Blend", "description": "Med light roast", "unit": "kg", "quantity": 2},
+                {"item_id": "a-2", "name": "100% Arabica Blend", "description": "Vienna roast", "unit": "kg", "quantity": 3},
+                {"item_id": "r-1", "name": "100% Robusta Blend", "description": "Med roast", "unit": "kg", "quantity": 1},
+            ],
+        })
+        with patch.object(zoho_service, "fetch_invoice", return_value=invoice), patch.object(
+            zoho_service, "get_connection", return_value=conn
+        ), patch.object(zoho_service, "release_connection"), patch.object(
+            zoho_service, "create_order", return_value={"id": 50}
+        ) as create:
+            zoho_service.import_invoice("90005")
+        self.assertEqual([item["bean_id"] for item in create.call_args.kwargs["items"]], [22, 22, 23])
+        self.assertEqual(create.call_args.kwargs["notes"].splitlines(), [
+            "Zoho invoice INV-90005",
+            "100% Arabica Blend × 2 kg — Med light roast",
+            "100% Arabica Blend × 3 kg — Vienna roast",
+            "100% Robusta Blend × 1 kg — Med roast",
+            "Invoice note: Leave at reception",
+        ])
+        self.assertEqual(create.call_args.kwargs["external_payload"], invoice)
 
     def test_unit_mismatch_rolls_back_mapping(self):
         conn = MappingConnection()
@@ -360,8 +433,8 @@ class ZohoIntegrationTests(unittest.TestCase):
             "notes": "Deliver to the front counter",
             "status": "sent",
             "invoice_items": [
-                {"item_id": "z-1", "name": "Green Arabica", "quantity": 4},
-                {"item_id": "z-2", "name": "Instant Coffee", "quantity": 2},
+                {"item_id": "z-1", "name": "Green Arabica", "description": "Lot A", "quantity": 4},
+                {"item_id": "z-2", "name": "Instant Coffee", "description": "Fine grind", "quantity": 2},
             ],
         }
         mapped_items = [
@@ -395,6 +468,13 @@ class ZohoIntegrationTests(unittest.TestCase):
         self.assertEqual(create.call_args.kwargs["items"], mapped_items)
         self.assertEqual(create.call_args.kwargs["external_source"], "zoho_billing_invoice")
         self.assertIn("INV-90002", create.call_args.kwargs["notes"])
+        self.assertIn("Green Arabica × 4", create.call_args.kwargs["notes"])
+        self.assertIn("Lot A", create.call_args.kwargs["notes"])
+        self.assertIn("Instant Coffee × 2", create.call_args.kwargs["notes"])
+        self.assertIn("Fine grind", create.call_args.kwargs["notes"])
+        self.assertEqual(create.call_args.kwargs["invoice_number"], "INV-90002")
+        self.assertEqual(create.call_args.kwargs["external_payload"]["line_items"],
+                         zoho_service._normalize_invoice(invoice)["line_items"])
 
     def test_rejects_void_invoice(self):
         invoice = {

@@ -12,9 +12,10 @@ Simply viewing invoices does **not** create orders or deduct current stock.
 An admin can select **Import to history** for one past invoice, **Import this
 page** for the current 25-invoice page, or **Import all past invoices** to
 process every Zoho page sequentially while the browser tab stays open.
-Historical imports store every
-invoice line, the invoice date/number, and the complete invoice JSON snapshot
-in local order history without catalog matching or stock deductions. They are
+Historical imports store every invoice line (with its item name), the
+description beside that item in order notes, the invoice date/number, and the
+complete invoice JSON snapshot in local order history without catalog matching
+or stock deductions. They are
 idempotent by Zoho invoice ID; cancelled/void and current-day invoices are not
 history-imported. For a current-day invoice, an admin can use **Import as order**
 to create the active order immediately (with catalog matching but no stock deduction yet)
@@ -31,12 +32,16 @@ For automatic order creation, the webhook workflow is still required:
 3. The app refreshes its Zoho OAuth access token and fetches the complete
    invoice from Zoho.
 4. Each Billing `invoice_items` entry is matched to a local catalog item by
-   its exact description, saved Billing item ID, or exact name. A Billing item
-   ID is saved only when the name and description do not identify different
-   variants; the old Books/Inventory item ID is kept separate.
-5. One local multi-item pending order is created. Stock is checked and deducted
+   its name or saved Billing item ID. An exact description match remains a
+   fallback for older generic Zoho item names. Known roasted blend names in
+   `data/blend_mapping.json` are created as zero-stock catalog items if missing.
+   Roast descriptions are not treated as separate stock items.
+5. The order notes list each mapped catalog item, quantity, and its Zoho line
+   description. The invoice-level note follows those lines; the complete
+   invoice JSON and invoice number are also stored on the order.
+6. One local multi-item pending order is created. Stock is checked and deducted
    atomically only when staff marks the order delivered.
-6. The Zoho invoice ID is saved on the order. Repeated webhook deliveries
+7. The Zoho invoice ID is saved on the order. Repeated webhook deliveries
    return the existing order instead of creating a duplicate.
 
 Cancelled or void invoices are rejected. An invoice is also rejected if an

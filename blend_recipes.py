@@ -13,6 +13,12 @@ _RECIPES = json.loads(
 _BY_NAME = {row["name"].casefold(): row for row in _RECIPES}
 
 
+def roasted_blend_catalog_name(name: str) -> str | None:
+    """Return the canonical catalog name only for an explicitly mapped blend."""
+    row = _BY_NAME.get(name.strip().casefold())
+    return row["name"] if row else None
+
+
 def blend_components(name: str, quantity: Decimal) -> dict[str, Decimal] | None:
     """Return source-stock demands for a blended item, or None for normal stock.
 

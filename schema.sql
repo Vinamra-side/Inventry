@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS orders (
     quantity NUMERIC(10, 2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending_delivery',
     stock_deducted BOOLEAN NOT NULL DEFAULT true,
-    notes VARCHAR(255),
+    notes TEXT,
     delivery_date DATE,
     delivered_at TIMESTAMPTZ,
     external_source VARCHAR(30),
@@ -61,6 +61,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_id VARCHAR(120);
 ALTER TABLE orders ALTER COLUMN bean_id DROP NOT NULL;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(120);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_payload JSONB;
+ALTER TABLE orders ALTER COLUMN notes TYPE TEXT;
 -- Existing orders already deducted stock when created. New pending orders opt out.
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted BOOLEAN NOT NULL DEFAULT true;
 

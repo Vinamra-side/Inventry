@@ -74,6 +74,7 @@ def _ensure_order_items_schema(conn):
         cur.execute("ALTER TABLE orders ALTER COLUMN bean_id DROP NOT NULL")
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(120)")
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_payload JSONB")
+        cur.execute("ALTER TABLE orders ALTER COLUMN notes TYPE TEXT")
         # Existing orders were deducted at creation under the previous workflow.
         cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted BOOLEAN NOT NULL DEFAULT true")
         cur.execute("ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_valid")
@@ -192,6 +193,31 @@ def is_past_zoho_invoice(invoice):
     return invoice_date < india_today
 
 
+def format_invoice_order_notes(invoice_number: str, lines: list[dict], mapped_items: list[dict], invoice_note: str = "") -> str:
+    """Keep each invoice description adjacent to its mapped order item."""
+    if len(lines) != len(mapped_items):
+        raise ValueError("Every invoice line needs an item mapping.")
+    note_lines = [f"Zoho invoice {invoice_number}"]
+    for line, mapped in zip(lines, mapped_items):
+        catalog_name = " ".join(str(mapped.get("catalog_name") or line.get("name") or "Item").split())
+        zoho_name = " ".join(str(line.get("name") or "").split())
+        description = " ".join(str(line.get("description") or "").split())
+        quantity = format(Decimal(str(mapped["quantity"])).normalize(), "f")
+        unit = str(mapped.get("unit") or line.get("unit") or "").strip()
+        label = f"{catalog_name} × {quantity} {unit}".strip()
+        if zoho_name and zoho_name.casefold() != catalog_name.casefold():
+            label += f" (Zoho: {zoho_name})"
+        if description:
+            label += f" — {description}"
+        note_lines.append(label)
+    if invoice_note:
+        note_lines.append(f"Invoice note: {' '.join(str(invoice_note).split())}")
+    notes = "\n".join(note_lines)
+    if len(notes) > 65535:
+        raise ValueError("Invoice notes must be 65535 characters or fewer.")
+    return notes
+
+
 def archive_zoho_invoice(invoice):
     """Save a past Billing invoice in order history without changing stock."""
     invoice_id = str(invoice.get("invoice_id") or "").strip()
@@ -209,7 +235,7 @@ def archive_zoho_invoice(invoice):
     for line in lines:
         if not isinstance(line, dict):
             raise ValueError("The Zoho invoice contains an invalid line item.")
-        name = str(line.get("description") or line.get("name") or "").strip()
+        name = str(line.get("name") or line.get("description") or "").strip()
         if not name:
             raise ValueError("Every invoice line needs an item name or description.")
         try:
@@ -222,7 +248,11 @@ def archive_zoho_invoice(invoice):
 
     customer = str(invoice.get("customer_name") or "Zoho customer").strip()[:120]
     number = str(invoice.get("invoice_number") or invoice_id).strip()[:120]
-    notes = str(invoice.get("notes") or "").strip()[:255] or None
+    notes = format_invoice_order_notes(
+        number, lines,
+        [{"catalog_name": name, "unit": unit, "quantity": quantity} for name, unit, quantity, _ in prepared],
+        str(invoice.get("notes") or "").strip(),
+    )
     conn = get_connection()
     try:
         _ensure_order_items_schema(conn)
@@ -532,11 +562,13 @@ def create_order(
     items=None,
     external_source=None,
     external_id=None,
+    invoice_number=None,
+    external_payload=None,
 ):
     customer_name = _validate_text(customer_name, "Customer name", 120)
     notes = (notes or "").strip() or None
-    if notes and len(notes) > 255:
-        raise ValueError("Notes must be 255 characters or fewer.")
+    if notes and len(notes) > 65535:
+        raise ValueError("Notes must be 65535 characters or fewer.")
     if items is None:
         items = [{"bean_id": bean_id, "quantity": quantity}]
     if not items:
@@ -601,14 +633,15 @@ def create_order(
                 """
                 INSERT INTO orders (
                     bean_id, customer_name, quantity, notes, status, delivery_date,
-                    external_source, external_id, stock_deducted
+                    external_source, external_id, invoice_number, external_payload, stock_deducted
                 )
-                VALUES (%s, %s, %s, %s, 'pending_delivery', %s, %s, %s, false)
+                VALUES (%s, %s, %s, %s, 'pending_delivery', %s, %s, %s, %s, %s::jsonb, false)
                 RETURNING *
                 """,
                 (
                     primary_bean["id"], customer_name, primary_quantity, notes,
-                    delivery_date, external_source, external_id,
+                    delivery_date, external_source, external_id, invoice_number,
+                    json.dumps(external_payload) if external_payload is not None else None,
                 ),
             )
             order = cur.fetchone()

@@ -84,6 +84,17 @@ class MultiItemOrderTests(unittest.TestCase):
         self.assertEqual(order["status"], "pending_delivery")
         self.assertFalse(any(sql.startswith("UPDATE beans") for sql, _ in conn.cur.calls))
 
+    def test_order_notes_are_not_truncated_at_old_limit(self):
+        conn = FakeConnection()
+        long_note = "Roast details: " + "medium-light " * 30
+        with patch.object(services, "get_connection", return_value=conn), patch.object(
+            services, "release_connection"
+        ), patch.object(services, "_ensure_order_items_schema"):
+            services.create_order(customer_name="Cafe", items=[{"bean_id": 2, "quantity": 1}], notes=long_note)
+        saved = next(params for sql, params in conn.cur.calls if sql.startswith("INSERT INTO orders"))
+        self.assertGreater(len(saved[3]), 255)
+        self.assertEqual(saved[3], long_note.strip())
+
 
 class DeliveryCursor:
     def __init__(self, stock_deducted=False, available=10):

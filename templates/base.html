@@ -13,12 +13,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='22') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='23') }}">
 </head>
 <body>
   <script>
     (function () {
-      const saved = localStorage.getItem('saiko-theme');
+      let saved;
+      try { saved = localStorage.getItem('saiko-theme'); } catch (_) {}
       const theme = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       document.body.dataset.theme = theme;
     }());
@@ -94,7 +95,7 @@
                 <span class="account-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6.5 19c.5-3.3 2.3-5 5.5-5s5 1.7 5.5 5"/><circle cx="12" cy="12" r="9"/></svg></span><span>Login accounts</span>
               </a>
               <a href="{{ url_for('users') }}" role="menuitem" class="{{ 'active' if request.endpoint in ['users','remove_user'] }}">
-                <span class="account-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 19c-.4-2.8-1.9-4.3-4.5-4.3S7.4 16.2 7 19"/><circle cx="11.5" cy="8.5" r="3"/><path d="M16.5 6.3a2.7 2.7 0 0 1 0 5.2M18 14.8c1.7.5 2.7 1.9 3 4.2"/></svg></span><span>Licensed users</span>
+                <span class="account-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 19c-.4-2.8-1.9-4.3-4.5-4.3S7.4 16.2 7 19"/><circle cx="11.5" cy="8.5" r="3"/><path d="M16.5 6.3a2.7 2.7 0 0 1 0 5.2M18 14.8c1.7.5 2.7 1.9 3 4.2"/></svg></span><span>Message list</span>
               </a>
             </div>
             {% endif %}
@@ -117,21 +118,25 @@
         </details>
       </div>
       <header class="mobile-topbar">
-        <button class="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false" data-mobile-menu-toggle></button>
+        <button class="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false" data-mobile-menu-toggle>
+          <svg viewBox="0 0 24 24" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
         <a href="{{ url_for('dashboard') }}" class="mobile-brand">
           <img src="{{ url_for('static', filename='saiko-logo-clean.png') }}" alt="SAIKO">
         </a>
         <span class="mobile-title">{% block mobile_title %}Workspace{% endblock %}</span>
         <button class="mobile-theme-toggle" type="button" aria-label="Toggle colour theme" data-theme-toggle>◐</button>
       </header>
-      <nav class="mobile-menu" aria-label="Mobile navigation" data-mobile-menu>
+      <nav class="mobile-menu" id="mobile-navigation" aria-label="Mobile navigation" data-mobile-menu>
         <a href="{{ url_for('dashboard') }}">Dashboard <span>→</span></a>
         <a href="{{ url_for('inventory') }}">Inventory <span>→</span></a>
         <a href="{{ url_for('orders') }}">Orders <span>→</span></a>
         <a href="{{ url_for('deliveries') }}">Deliveries <span>→</span></a>
         <a href="{{ url_for('insights') }}">Insights <span>→</span></a>
         <a href="{{ url_for('stock_history') }}">Stock history <span>→</span></a>
-        <a href="{{ url_for('users') }}">Users <span>→</span></a>
+        {% if session.get('role') == 'admin' %}
+        <a href="{{ url_for('users') }}">Message list <span>→</span></a>
+        {% endif %}
       </nav>
 
       <main class="content">
@@ -156,19 +161,54 @@
       function update() {
         const dark = document.body.dataset.theme === 'dark';
         label.textContent = dark ? 'Light mode' : 'Dark mode';
-        document.querySelector('.theme-toggle span').textContent = dark ? '' : '◐';
-        document.querySelector('.mobile-theme-toggle').textContent = dark ? '' : '◐';
+        document.querySelector('.theme-toggle span').textContent = dark ? '☀' : '◐';
+        document.querySelector('.mobile-theme-toggle').textContent = dark ? '☀' : '◐';
       }
       buttons.forEach(function (button) { button.addEventListener('click', function () {
           document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-          localStorage.setItem('saiko-theme', document.body.dataset.theme); update();
+          try { localStorage.setItem('saiko-theme', document.body.dataset.theme); } catch (_) {}
+          update();
       }); });
       update();
       const menuToggle = document.querySelector('[data-mobile-menu-toggle]');
       const mobileMenu = document.querySelector('[data-mobile-menu]');
+      menuToggle.setAttribute('aria-controls', mobileMenu.id);
+      document.body.classList.add('mobile-navigation-ready');
+      function closeNavigation() {
+        mobileMenu.classList.remove('is-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
       menuToggle.addEventListener('click', function () {
         const open = mobileMenu.classList.toggle('is-open');
         menuToggle.setAttribute('aria-expanded', String(open));
+      });
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && mobileMenu.classList.contains('is-open')) {
+          closeNavigation();
+          menuToggle.focus();
+        }
+      });
+      document.addEventListener('click', function (event) {
+        if (!mobileMenu.contains(event.target) && !menuToggle.contains(event.target)) closeNavigation();
+      });
+      mobileMenu.addEventListener('click', function (event) {
+        if (event.target.closest('a')) closeNavigation();
+      });
+      // Keep each record readable on phones while preserving desktop columns.
+      document.querySelectorAll('.table-wrap table').forEach(function (table) {
+        const headings = Array.from(table.querySelectorAll('thead th'));
+        if (!headings.length) return;
+        table.setAttribute('role', 'table');
+        table.querySelectorAll('thead, tbody').forEach(function (group) { group.setAttribute('role', 'rowgroup'); });
+        table.querySelectorAll('tr').forEach(function (row) { row.setAttribute('role', 'row'); });
+        headings.forEach(function (heading) { heading.setAttribute('role', 'columnheader'); });
+        table.querySelectorAll('tbody tr').forEach(function (row) {
+          Array.from(row.cells).forEach(function (cell, index) {
+            cell.setAttribute('role', 'cell');
+            cell.dataset.label = headings[index] ? headings[index].textContent.trim() || 'Actions' : '';
+          });
+        });
+        table.classList.add('mobile-records');
       });
     }());
   </script>

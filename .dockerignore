@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.git/
+.github/
+.pnpm-store/
+.pytest_cache/
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+*.pem
+*.key
+credentials/
+node_modules/
+tmp/

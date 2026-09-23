@@ -464,7 +464,7 @@ def register_routes(app):
             flash(str(exc), "error")
         return redirect(url_for("orders"))
 
-    # ---- Licensed users --------------------------------------------------
+    # ---- Message recipients ----------------------------------------------
 
     @app.route("/users", methods=["GET", "POST"])
     @admin_required
@@ -475,7 +475,7 @@ def register_routes(app):
                     name=request.form["name"],
                     phone_number=request.form["phone_number"],
                 )
-                flash("User added.", "success")
+                flash("Recipient added to message list. WhatsApp setup is pending.", "success")
             except (ValueError, LicenseLimitError) as exc:
                 flash(str(exc), "error")
             return redirect(url_for("users"))
@@ -488,7 +488,7 @@ def register_routes(app):
     def remove_user(subscriber_id):
         try:
             remove_subscriber(subscriber_id)
-            flash("User removed.", "success")
+            flash("Recipient removed from message list.", "success")
         except NotFoundError as exc:
             flash(str(exc), "error")
         return redirect(url_for("users"))

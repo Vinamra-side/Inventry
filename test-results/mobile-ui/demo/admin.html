@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Local UI demo — Admin mobile shell</title>
+  <link rel="icon" href="/static/app-icon-192.png">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .demo-notice { margin: 0 0 18px; padding: 10px 14px; border: 1px solid #e6bdd4; border-radius: 12px; background: #fff8fc; color: #7d285a; font: 700 12px/1.4 Arial, sans-serif; }
+    .demo-panel { max-width: 720px; }
+    .demo-panel p { color: var(--muted); line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a href="admin.html" class="brand-lockup" aria-label="Saiko home"><img src="/static/saiko-logo-clean.png" alt="SAIKO"><span>COFFEE OPERATIONS</span></a>
+      <div class="side-section-label">Workspace</div>
+      <nav class="side-nav" aria-label="Primary navigation"><a class="active" href="admin.html"><span>Dashboard</span></a><a href="#inventory">Inventory</a><a href="#orders">Orders</a><a href="#deliveries">Deliveries</a><a href="#insights">Insights</a><a href="#history">Stock history</a></nav>
+    </aside>
+    <div class="main-shell">
+      <header class="mobile-topbar">
+        <button class="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false" data-mobile-menu-toggle><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <a href="admin.html" class="mobile-brand"><img src="/static/saiko-logo-clean.png" alt="SAIKO"></a>
+        <span class="mobile-title">Admin</span>
+        <span aria-hidden="true" style="width:44px"></span>
+      </header>
+      <nav class="mobile-menu" aria-label="Mobile navigation" data-mobile-menu>
+        <a href="#dashboard">Dashboard <span>→</span></a><a href="#inventory">Inventory <span>→</span></a><a href="#orders">Orders <span>→</span></a><a href="#deliveries">Deliveries <span>→</span></a><a href="#insights">Insights <span>→</span></a><a href="#history">Stock history <span>→</span></a><a href="#users">Users <span>→</span></a>
+      </nav>
+      <main class="content">
+        <div class="demo-notice" role="note">Local UI demo — synthetic data, no backend</div>
+        <section class="panel demo-panel"><div class="eyebrow">ADMIN VIEW</div><h1>Mobile workspace</h1><p>Use the menu button to compare its closed and opened states. This admin variant includes the Users destination.</p><a class="button secondary" href="staff.html">View staff variant</a></section>
+      </main>
+    </div>
+  </div>
+  <script src="demo.js"></script>
+</body>
+</html>

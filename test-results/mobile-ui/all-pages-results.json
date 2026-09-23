@@ -1,0 +1,1172 @@
+[
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "light",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 720,
+    "theme": "dark",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "admin_accounts",
+    "overflow": false,
+    "title": "Login Accounts · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "dashboard",
+    "overflow": false,
+    "title": "Dashboard · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "deliveries",
+    "overflow": false,
+    "title": "Deliveries · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "insights",
+    "overflow": false,
+    "title": "Sales Insights · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "inventory",
+    "overflow": false,
+    "title": "Inventory · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "license_inactive",
+    "overflow": false,
+    "title": "Unavailable · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "login",
+    "overflow": false,
+    "title": "Sign in · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "new_bean",
+    "overflow": false,
+    "title": "Add Item · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "orders",
+    "overflow": false,
+    "title": "Orders · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "stock_history",
+    "overflow": false,
+    "title": "Stock History · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "users",
+    "overflow": false,
+    "title": "Users · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "zoho_invoices",
+    "overflow": false,
+    "title": "Zoho invoices · SAIKO",
+    "bad": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "page": "zoho_invoice_detail",
+    "overflow": false,
+    "title": "Zoho invoice · SAIKO",
+    "bad": [],
+    "errors": []
+  }
+]

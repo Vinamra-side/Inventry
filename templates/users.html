@@ -1,14 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Users{% endblock %}
-{% block mobile_title %}Users{% endblock %}
+{% block title %}Message list{% endblock %}
+{% block mobile_title %}Message list{% endblock %}
 {% block content %}
-  <section class="page-head"><div><div class="eyebrow">WORKSPACE ACCESS</div><h1>Users</h1><p class="subtitle">Manage licensed users who receive your operational updates.</p></div></section>
+  <section class="page-head"><div><div class="eyebrow">WHATSAPP UPDATES</div><h1>Message list</h1><p class="subtitle">Manage the people who will receive your operational updates on WhatsApp.</p></div><span class="badge low">WhatsApp setup pending</span></section>
   <div class="content-grid subscribers-layout">
-    <section class="panel form-panel"><div class="panel-head"><div><div class="eyebrow">ADD USER</div><h2>Issue a user seat</h2></div><div class="round-icon">◎</div></div>
-      <form class="stacked" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="name">Name</label><input type="text" id="name" name="name" maxlength="120" placeholder="Full name" required><label for="phone_number">Contact number</label><input type="tel" id="phone_number" name="phone_number" maxlength="20" pattern="\+?[0-9][0-9 -]{6,19}" placeholder="+91XXXXXXXXXX" required><p class="field-help">A licence seat is assigned when this user is added. Login accounts and licensed users share the same seat limit.</p><button type="submit">Issue user seat <span>→</span></button></form>
+    <section class="panel form-panel"><div class="panel-head"><div><div class="eyebrow">ADD RECIPIENT</div><h2>Add to message list</h2><p class="panel-copy">Save a contact now. Messages will start only after WhatsApp is connected.</p></div></div>
+      <form class="stacked" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="name">Name</label><input type="text" id="name" name="name" maxlength="120" placeholder="Full name" required>
+        <label for="phone_number">WhatsApp number</label><input type="tel" id="phone_number" name="phone_number" maxlength="20" pattern="\+?[0-9][0-9 -]{6,19}" placeholder="+91XXXXXXXXXX" autocomplete="tel" aria-describedby="phone-help" required>
+        <p class="field-help" id="phone-help">Include the country code. Add people who have agreed to receive WhatsApp updates.</p>
+        <p class="field-help">Recipients currently count toward your workspace licence seat limit.</p>
+        <button type="submit">Add recipient <span>→</span></button>
+      </form>
     </section>
-    <section class="panel"><div class="panel-head"><div><div class="eyebrow">LICENCED USERS</div><h2>Current users</h2></div><span class="count-pill">{{ users|length }} active</span></div>
-      {% if users %}<div class="subscriber-list">{% for user in users %}<div class="subscriber-row"><div class="avatar">{{ user.name[:1]|upper }}</div><div class="subscriber-main"><strong>{{ user.name }}</strong><span>{{ user.phone_number }}</span></div><form method="POST" action="{{ url_for('remove_user', subscriber_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="remove-button">Remove</button></form></div>{% endfor %}</div>{% else %}<div class="empty-state compact"><div class="empty-icon">◎</div><strong>No users yet</strong><span>Issue a licensed user seat to add the first person.</span></div>{% endif %}
+    <section class="panel"><div class="panel-head"><div><div class="eyebrow">MESSAGE LIST</div><h2>Recipients</h2><p class="panel-copy">No WhatsApp messages are being sent yet.</p></div><span class="count-pill">{{ users|length }} recipient{{ '' if users|length == 1 else 's' }}</span></div>
+      {% if users %}<div class="subscriber-list">{% for user in users %}<div class="subscriber-row"><div class="avatar">{{ user.name[:1]|upper }}</div><div class="subscriber-main"><strong>{{ user.name }}</strong><span>{{ user.phone_number }}</span></div><form method="POST" action="{{ url_for('remove_user', subscriber_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="remove-button" aria-label="Remove {{ user.name }} from message list">Remove</button></form></div>{% endfor %}</div>{% else %}<div class="empty-state compact"><div class="empty-icon">◎</div><strong>No recipients yet</strong><span>Add a name and WhatsApp number to build your message list.</span></div>{% endif %}
     </section>
   </div>
 {% endblock %}

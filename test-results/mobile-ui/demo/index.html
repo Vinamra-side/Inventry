@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Local UI demo — Sign in</title>
+  <link rel="icon" href="/static/app-icon-192.png">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .demo-notice { position: fixed; inset: 10px 10px auto; z-index: 10001; padding: 10px 14px; border: 1px solid #e6bdd4; border-radius: 12px; background: #fff8fc; color: #7d285a; font: 700 12px/1.4 Arial, sans-serif; text-align: center; }
+    .demo-sign-in-fields label { display: block; margin: 14px 0 7px; color: #655d63; font-size: 11px; font-weight: 700; }
+    .demo-sign-in-fields label:first-child { margin-top: 0; }
+    .demo-sign-in-fields input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--card); color: var(--ink); font-size: 12px; }
+    .demo-sign-in-fields button { width: 100%; min-height: 44px; margin-top: 20px; }
+    .demo-links { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .demo-links a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--pink-dark); font-size: 12px; font-weight: 700; text-decoration: none; }
+  </style>
+</head>
+<body class="auth-page">
+  <div class="demo-notice" role="note">Local UI demo — synthetic data, no backend</div>
+  <main class="auth-card">
+    <img src="/static/saiko-logo-clean.png" alt="SAIKO" class="auth-logo">
+    <div class="eyebrow">COFFEE OPERATIONS</div>
+    <h1 id="demo-sign-in-title">Sign in</h1>
+    <p class="subtitle">Use your Saiko workspace account.</p>
+    <div class="stacked demo-sign-in-fields" role="group" aria-labelledby="demo-sign-in-title">
+      <label for="login-username">Username</label>
+      <input id="login-username" name="username" autocomplete="username" maxlength="80" required>
+      <label for="login-password">Password</label>
+      <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+      <button type="button">Sign in <span aria-hidden="true">→</span></button>
+    </div>
+    <nav class="demo-links" aria-label="Demo pages">
+      <a href="admin.html">Admin shell</a>
+      <a href="staff.html">Staff shell</a>
+    </nav>
+  </main>
+  <script src="demo.js"></script>
+</body>
+</html>

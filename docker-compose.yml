@@ -1,0 +1,39 @@
+name: saiko-inventory-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${LOCAL_POSTGRES_DB:-saiko_inventory}
+      POSTGRES_USER: ${LOCAL_POSTGRES_USER:-saiko_local}
+      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_PASSWORD:-saiko_local_password}
+    ports:
+      - "127.0.0.1:${LOCAL_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+      - ./scripts/local-stack/seed.sql:/docker-entrypoint-initdb.d/20-seed.sql:ro
+      - ./scripts/local-stack:/local-stack:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - local
+
+volumes:
+  postgres-data:
+
+networks:
+  local:
+    driver: bridge

@@ -1,0 +1,869 @@
+{
+  "target": "https://saiko-inventory.vercel.app",
+  "generatedAt": "2026-09-22T18:03:44.438Z",
+  "browserVersion": "153.0.8010.53",
+  "safety": "GET navigation and local UI inspection only; no form submissions or state-changing requests.",
+  "viewports": [
+    {
+      "viewport": {
+        "name": "mobile-375x812",
+        "width": 375,
+        "height": 812
+      },
+      "initialStatus": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/",
+      "responseHeaders": {
+        "age": "0",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Tue, 22 Sep 2026 18:03:47 GMT",
+        "referrer-policy": "same-origin",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "vary": "Cookie",
+        "x-content-type-options": "nosniff",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "bom1::sin1::q9wkp-1790100227395-eff7d3de1f49"
+      },
+      "screenshot": "mobile-375x812-login-before.png",
+      "dom": {
+        "url": "https://saiko-inventory.vercel.app/login?next=/",
+        "title": "Sign in · SAIKO",
+        "documentLanguage": "en",
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "scroll": {
+          "bodyWidth": 375,
+          "documentWidth": 375,
+          "horizontalOverflow": false
+        },
+        "bodyTextSize": "16px",
+        "landmarks": {
+          "main": 1,
+          "nav": 0,
+          "header": 0,
+          "footer": 0
+        },
+        "headings": [
+          {
+            "level": 1,
+            "text": "Sign in"
+          }
+        ],
+        "labels": [
+          {
+            "text": "Username",
+            "htmlFor": null,
+            "wrapsControl": false
+          },
+          {
+            "text": "Password",
+            "htmlFor": null,
+            "wrapsControl": false
+          }
+        ],
+        "inputNames": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          }
+        ],
+        "controls": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 255,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 255,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 255,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "undersizedControls": [
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 255,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "brokenImages": [],
+        "overflowingElements": [],
+        "mobileToggle": null,
+        "mobileMenu": null,
+        "usersLinks": []
+      },
+      "focusOrder": [
+        {
+          "tag": "input",
+          "type": "password",
+          "name": "password",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": null,
+          "text": "Sign in →",
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "body",
+          "type": null,
+          "name": null,
+          "text": "COFFEE OPERATIONSSign inUse your Saiko workspace account.UsernamePasswordSign in",
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "input",
+          "type": null,
+          "name": "username",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgb(255, 240, 248) 0px 0px 0px 4px"
+        }
+      ],
+      "consoleMessages": [
+        {
+          "type": "warning",
+          "text": "Service Worker registration blocked by Playwright"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 ()"
+        }
+      ],
+      "failedRequests": [],
+      "errorResponses": []
+    },
+    {
+      "viewport": {
+        "name": "mobile-390x844",
+        "width": 390,
+        "height": 844
+      },
+      "initialStatus": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/",
+      "responseHeaders": {
+        "age": "0",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Tue, 22 Sep 2026 18:03:48 GMT",
+        "referrer-policy": "same-origin",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "vary": "Cookie",
+        "x-content-type-options": "nosniff",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "bom1::sin1::vwtjf-1790100228734-34f70de6e0de"
+      },
+      "screenshot": "mobile-390x844-login-before.png",
+      "dom": {
+        "url": "https://saiko-inventory.vercel.app/login?next=/",
+        "title": "Sign in · SAIKO",
+        "documentLanguage": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scroll": {
+          "bodyWidth": 390,
+          "documentWidth": 390,
+          "horizontalOverflow": false
+        },
+        "bodyTextSize": "16px",
+        "landmarks": {
+          "main": 1,
+          "nav": 0,
+          "header": 0,
+          "footer": 0
+        },
+        "headings": [
+          {
+            "level": 1,
+            "text": "Sign in"
+          }
+        ],
+        "labels": [
+          {
+            "text": "Username",
+            "htmlFor": null,
+            "wrapsControl": false
+          },
+          {
+            "text": "Password",
+            "htmlFor": null,
+            "wrapsControl": false
+          }
+        ],
+        "inputNames": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          }
+        ],
+        "controls": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 270,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 270,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 270,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "undersizedControls": [
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 270,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "brokenImages": [],
+        "overflowingElements": [],
+        "mobileToggle": null,
+        "mobileMenu": null,
+        "usersLinks": []
+      },
+      "focusOrder": [
+        {
+          "tag": "input",
+          "type": "password",
+          "name": "password",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": null,
+          "text": "Sign in →",
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "body",
+          "type": null,
+          "name": null,
+          "text": "COFFEE OPERATIONSSign inUse your Saiko workspace account.UsernamePasswordSign in",
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "input",
+          "type": null,
+          "name": "username",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgb(255, 240, 248) 0px 0px 0px 4px"
+        }
+      ],
+      "consoleMessages": [
+        {
+          "type": "warning",
+          "text": "Service Worker registration blocked by Playwright"
+        }
+      ],
+      "failedRequests": [],
+      "errorResponses": []
+    },
+    {
+      "viewport": {
+        "name": "tablet-768x1024",
+        "width": 768,
+        "height": 1024
+      },
+      "initialStatus": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/",
+      "responseHeaders": {
+        "age": "0",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Tue, 22 Sep 2026 18:03:50 GMT",
+        "referrer-policy": "same-origin",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "vary": "Cookie",
+        "x-content-type-options": "nosniff",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "bom1::sin1::p552l-1790100230021-d5a47bf9e31c"
+      },
+      "screenshot": "tablet-768x1024-login-before.png",
+      "dom": {
+        "url": "https://saiko-inventory.vercel.app/login?next=/",
+        "title": "Sign in · SAIKO",
+        "documentLanguage": "en",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "scroll": {
+          "bodyWidth": 768,
+          "documentWidth": 768,
+          "horizontalOverflow": false
+        },
+        "bodyTextSize": "16px",
+        "landmarks": {
+          "main": 1,
+          "nav": 0,
+          "header": 0,
+          "footer": 0
+        },
+        "headings": [
+          {
+            "level": 1,
+            "text": "Sign in"
+          }
+        ],
+        "labels": [
+          {
+            "text": "Username",
+            "htmlFor": null,
+            "wrapsControl": false
+          },
+          {
+            "text": "Password",
+            "htmlFor": null,
+            "wrapsControl": false
+          }
+        ],
+        "inputNames": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          }
+        ],
+        "controls": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "undersizedControls": [
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "brokenImages": [],
+        "overflowingElements": [],
+        "mobileToggle": null,
+        "mobileMenu": null,
+        "usersLinks": []
+      },
+      "focusOrder": [
+        {
+          "tag": "input",
+          "type": "password",
+          "name": "password",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": null,
+          "text": "Sign in →",
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "body",
+          "type": null,
+          "name": null,
+          "text": "COFFEE OPERATIONSSign inUse your Saiko workspace account.UsernamePasswordSign in",
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "input",
+          "type": null,
+          "name": "username",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgb(255, 240, 248) 0px 0px 0px 4px"
+        }
+      ],
+      "consoleMessages": [
+        {
+          "type": "warning",
+          "text": "Service Worker registration blocked by Playwright"
+        }
+      ],
+      "failedRequests": [],
+      "errorResponses": []
+    },
+    {
+      "viewport": {
+        "name": "desktop-1280x800",
+        "width": 1280,
+        "height": 800
+      },
+      "initialStatus": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/",
+      "responseHeaders": {
+        "age": "0",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Tue, 22 Sep 2026 18:03:51 GMT",
+        "referrer-policy": "same-origin",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "vary": "Cookie",
+        "x-content-type-options": "nosniff",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "bom1::sin1::s7h7d-1790100231412-3107519e4f20"
+      },
+      "screenshot": "desktop-1280x800-login-before.png",
+      "dom": {
+        "url": "https://saiko-inventory.vercel.app/login?next=/",
+        "title": "Sign in · SAIKO",
+        "documentLanguage": "en",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "scroll": {
+          "bodyWidth": 1280,
+          "documentWidth": 1280,
+          "horizontalOverflow": false
+        },
+        "bodyTextSize": "16px",
+        "landmarks": {
+          "main": 1,
+          "nav": 0,
+          "header": 0,
+          "footer": 0
+        },
+        "headings": [
+          {
+            "level": 1,
+            "text": "Sign in"
+          }
+        ],
+        "labels": [
+          {
+            "text": "Username",
+            "htmlFor": null,
+            "wrapsControl": false
+          },
+          {
+            "text": "Password",
+            "htmlFor": null,
+            "wrapsControl": false
+          }
+        ],
+        "inputNames": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "id": null,
+            "ariaLabel": null,
+            "ariaLabelledBy": null,
+            "associatedLabels": []
+          }
+        ],
+        "controls": [
+          {
+            "tag": "input",
+            "type": null,
+            "name": "username",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "input",
+            "type": "password",
+            "name": "password",
+            "text": "",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 44,
+            "display": "block",
+            "visibility": "visible",
+            "overflowX": "clip"
+          },
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "undersizedControls": [
+          {
+            "tag": "button",
+            "type": "submit",
+            "name": null,
+            "text": "Sign in →",
+            "ariaLabel": null,
+            "id": null,
+            "width": 368,
+            "height": 39,
+            "display": "flex",
+            "visibility": "visible",
+            "overflowX": "visible"
+          }
+        ],
+        "brokenImages": [],
+        "overflowingElements": [],
+        "mobileToggle": null,
+        "mobileMenu": null,
+        "usersLinks": []
+      },
+      "focusOrder": [
+        {
+          "tag": "input",
+          "type": "password",
+          "name": "password",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+        },
+        {
+          "tag": "button",
+          "type": "submit",
+          "name": null,
+          "text": "Sign in →",
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "body",
+          "type": null,
+          "name": null,
+          "text": "COFFEE OPERATIONSSign inUse your Saiko workspace account.UsernamePasswordSign in",
+          "outlineStyle": "none",
+          "outlineWidth": "3px",
+          "boxShadow": "none"
+        },
+        {
+          "tag": "input",
+          "type": null,
+          "name": "username",
+          "text": "",
+          "outlineStyle": "none",
+          "outlineWidth": "0px",
+          "boxShadow": "rgb(255, 240, 248) 0px 0px 0px 4px"
+        }
+      ],
+      "consoleMessages": [
+        {
+          "type": "warning",
+          "text": "Service Worker registration blocked by Playwright"
+        }
+      ],
+      "failedRequests": [],
+      "errorResponses": []
+    }
+  ],
+  "routeChecks": [
+    {
+      "route": "/",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/inventory",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/inventory",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/orders",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/orders",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/deliveries",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/deliveries",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/insights",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/insights",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/stock-history",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login?next=/stock-history",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/users",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/admin/accounts",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login",
+      "title": "Sign in · SAIKO",
+      "error": null
+    },
+    {
+      "route": "/zoho-invoices",
+      "status": 200,
+      "finalURL": "https://saiko-inventory.vercel.app/login",
+      "title": "Sign in · SAIKO",
+      "error": null
+    }
+  ],
+  "assetChecks": [
+    {
+      "asset": "/manifest.webmanifest",
+      "status": 200,
+      "contentType": "application/manifest+json",
+      "cacheControl": "public, max-age=86400"
+    },
+    {
+      "asset": "/service-worker.js",
+      "status": 200,
+      "contentType": "application/javascript; charset=utf-8",
+      "cacheControl": "no-cache"
+    },
+    {
+      "asset": "/static/style.css",
+      "status": 200,
+      "contentType": "text/css; charset=utf-8",
+      "cacheControl": "public, max-age=86400"
+    },
+    {
+      "asset": "/static/saiko-logo-clean.png",
+      "status": 200,
+      "contentType": "image/png",
+      "cacheControl": "public, max-age=86400"
+    },
+    {
+      "asset": "/static/app-icon-192.png",
+      "status": 200,
+      "contentType": "image/png",
+      "cacheControl": "public, max-age=86400"
+    }
+  ]
+}

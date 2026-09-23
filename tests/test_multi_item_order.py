@@ -1,6 +1,7 @@
 """Regression coverage for pending multi-item orders and delivery deductions."""
 
 import unittest
+from datetime import datetime
 from unittest.mock import patch
 
 import services
@@ -97,9 +98,9 @@ class MultiItemOrderTests(unittest.TestCase):
 
 
 class DeliveryCursor:
-    def __init__(self, stock_deducted=False, available=10):
+    def __init__(self, stock_deducted=False, available=10, status="pending_delivery"):
         self.calls = []
-        self.pending = {"id": 42, "status": "pending_delivery", "stock_deducted": stock_deducted,
+        self.pending = {"id": 42, "status": status, "stock_deducted": stock_deducted,
                         "notes": None, "customer_name": "Cafe"}
         self.beans = {
             2: {"id": 2, "name": "Green Arabica", "unit": "kg", "current_stock": available},
@@ -122,7 +123,7 @@ class DeliveryCursor:
             self.selected = self.beans.get(params[0])
         elif sql.startswith("UPDATE orders"):
             self.selected = {**self.pending, "status": "cancelled" if "cancelled" in sql else "delivered",
-                             "stock_deducted": self.pending["stock_deducted"] if "cancelled" in sql else True}
+                             "stock_deducted": self.pending["stock_deducted"] if "stock_deducted = true" not in sql else True}
 
     def fetchone(self):
         return self.selected
@@ -132,13 +133,36 @@ class DeliveryCursor:
 
 
 class DeliveryConnection(FakeConnection):
-    def __init__(self, stock_deducted=False, available=10):
-        self.cur = DeliveryCursor(stock_deducted, available)
+    def __init__(self, stock_deducted=False, available=10, status="pending_delivery"):
+        self.cur = DeliveryCursor(stock_deducted, available, status)
         self.committed = False
         self.rolled_back = False
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_history_and_delivery_views_show_pending_delivered_or_cancelled(self):
+        import app as app_module
+        from flask import render_template
+
+        rows = [
+            {"id": index, "customer_name": "Cafe", "external_source": "zoho_billing_invoice",
+             "external_id": str(index), "invoice_number": f"INV-{index}", "items": [],
+             "notes": None, "status": status, "created_at": datetime(2026, 9, 1),
+             "delivered_at": datetime(2026, 9, 2) if status == "delivered" else None}
+            for index, status in enumerate(("historical", "pending_delivery", "delivered", "cancelled"), 1)
+        ]
+        with app_module.app.test_request_context("/orders"):
+            history = render_template("orders.html", beans=[], orders=rows, page=1, has_next=False)
+        self.assertEqual(history.count('>Pending</span>'), 2)
+        self.assertEqual(history.count('>Delivered</span>'), 1)
+        self.assertEqual(history.count('>Cancelled</span>'), 1)
+        self.assertNotIn("Imported history", history)
+        with app_module.app.test_request_context("/deliveries"):
+            delivery = render_template("deliveries.html", deliveries=rows[:3], page=1, has_next=False)
+        self.assertEqual(delivery.count('>Pending</span>'), 2)
+        self.assertEqual(delivery.count('>Delivered</span>'), 1)
+        self.assertEqual(delivery.count('>Mark as delivered</button>'), 2)
+
     def test_pending_items_show_available_and_out_of_stock(self):
         class LinesCursor:
             def execute(self, query, params):
@@ -164,11 +188,36 @@ class DeliveryTests(unittest.TestCase):
         statements = conn.cur.calls
         self.assertTrue(conn.committed)
         self.assertEqual(result["status"], "delivered")
+        self.assertTrue(result["stock_deducted"])
         self.assertEqual(
             [params for sql, params in statements if sql.startswith("UPDATE beans SET current_stock")],
             [(3, 2), (2, 5)],
         )
         self.assertEqual(sum(sql.startswith("INSERT INTO stock_movements") for sql, _ in statements), 2)
+
+    def test_historical_delivery_changes_status_without_stock_movement(self):
+        conn = DeliveryConnection(status="historical")
+        with patch.object(services, "get_connection", return_value=conn), patch.object(
+            services, "release_connection"
+        ), patch.object(services, "_ensure_order_items_schema"):
+            result = services.mark_order_delivered(42)
+        self.assertTrue(conn.committed)
+        self.assertEqual(result["status"], "delivered")
+        self.assertFalse(result["stock_deducted"])
+        self.assertFalse(any(sql.startswith("UPDATE beans") or sql.startswith("INSERT INTO stock_movements")
+                             for sql, _ in conn.cur.calls))
+        self.assertFalse(any(sql.startswith("SELECT bean_id") for sql, _ in conn.cur.calls))
+
+    def test_historical_order_can_be_cancelled_without_stock_movement(self):
+        conn = DeliveryConnection(status="historical")
+        with patch.object(services, "get_connection", return_value=conn), patch.object(
+            services, "release_connection"
+        ), patch.object(services, "_ensure_order_items_schema"):
+            result = services.cancel_order(42)
+        self.assertTrue(conn.committed)
+        self.assertEqual(result["status"], "cancelled")
+        self.assertFalse(any(sql.startswith("UPDATE beans") or sql.startswith("INSERT INTO stock_movements")
+                             for sql, _ in conn.cur.calls))
 
     def test_delivery_with_shortage_rolls_back_without_deduction(self):
         conn = DeliveryConnection(available=1)

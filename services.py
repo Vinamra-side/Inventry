@@ -678,11 +678,11 @@ def cancel_order(order_id):
 
             if order["status"] == "cancelled":
                 return order
-            if order["status"] != "pending_delivery":
+            if order["status"] not in ("pending_delivery", "historical"):
                 raise ValueError("Only orders awaiting delivery can be cancelled.")
 
             order_items = []
-            if order["stock_deducted"]:
+            if order["status"] == "pending_delivery" and order["stock_deducted"]:
                 cur.execute(
                     "SELECT bean_id, quantity FROM order_items WHERE order_id = %s ORDER BY bean_id FOR UPDATE",
                     (order_id,),
@@ -751,7 +751,7 @@ def list_deliveries(limit=101, offset=0):
                 """
                 SELECT orders.*
                 FROM orders
-                WHERE orders.status IN ('pending_delivery', 'delivered', 'fulfilled')
+                WHERE orders.status IN ('pending_delivery', 'historical', 'delivered', 'fulfilled')
                 ORDER BY orders.delivery_date NULLS LAST, orders.created_at DESC
                 LIMIT %s OFFSET %s
                 """,
@@ -769,8 +769,21 @@ def mark_order_delivered(order_id):
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM orders WHERE id = %s FOR UPDATE", (order_id,))
             pending = cur.fetchone()
-            if pending is None or pending["status"] != "pending_delivery":
+            if pending is None or pending["status"] not in ("pending_delivery", "historical"):
                 raise NotFoundError("This order is not awaiting delivery.")
+            if pending["status"] == "historical":
+                # Past invoice imports have no mapped stock item or prior stock
+                # movement. Confirm their delivery without changing inventory.
+                cur.execute(
+                    """UPDATE orders SET status = 'delivered', delivered_at = now()
+                       WHERE id = %s AND status = 'historical' RETURNING *""",
+                    (order_id,),
+                )
+                order = cur.fetchone()
+                if order is None:
+                    raise NotFoundError("This order is not awaiting delivery.")
+                conn.commit()
+                return order
             if not pending["stock_deducted"]:
                 cur.execute(
                     "SELECT bean_id, quantity FROM order_items WHERE order_id = %s ORDER BY bean_id",

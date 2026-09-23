@@ -15,7 +15,10 @@ process every Zoho page sequentially while the browser tab stays open.
 Historical imports store every invoice line (with its item name), the
 description beside that item in order notes, the invoice date/number, and the
 complete invoice JSON snapshot in local order history without catalog matching
-or stock deductions. They are
+or stock deductions. They appear as **Pending** in Order history and the
+Deliveries tab until staff marks them **Delivered**, or as **Cancelled** if
+staff cancels them. Confirming or cancelling a historical import never changes
+inventory; active orders still deduct stock only on delivery. They are
 idempotent by Zoho invoice ID; cancelled/void and current-day invoices are not
 history-imported. For a current-day invoice, an admin can use **Import as order**
 to create the active order immediately (with catalog matching but no stock deduction yet)

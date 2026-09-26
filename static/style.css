@@ -603,3 +603,43 @@ body[data-theme="dark"] .profile-menu .account-menu { box-shadow: 0 22px 60px rg
 
 /* Installed-app update prompt */
 .notification-menu{position:relative}.notification-menu>summary{list-style:none}.notification-menu>summary::-webkit-details-marker{display:none}.notification-button{box-sizing:border-box;position:relative;width:44px;height:44px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);box-shadow:none;cursor:pointer;transition:background-color .16s ease}.notification-button:hover,.notification-menu[open] .notification-button{background:rgba(127,127,127,.12)}.notification-button:focus-visible,.profile-menu .user-shortcut:focus-visible{outline:2px solid var(--ink);outline-offset:3px}.notification-button svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.notification-badge{position:absolute;top:0;right:0;min-width:16px;height:16px;padding:0 4px;border:2px solid var(--paper);border-radius:9px;background:var(--pink);color:#fff;font-size:9px;font-weight:800;line-height:12px;text-align:center}.notification-panel{position:absolute;top:54px;right:0;width:320px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.2)}.notification-head{display:flex;justify-content:space-between;gap:12px;padding:4px 4px 12px;border-bottom:1px solid var(--border)}.notification-head span,.notification-empty,.update-notification span{font-size:11px;color:var(--muted)}.notification-empty{padding:20px 4px}.update-notification{display:grid;gap:7px;padding:16px 4px 4px}.update-notification button{justify-self:start;margin-top:5px;padding:9px 13px}.notification-menu [hidden]{display:none!important}
+/* Top-navigation workspace */
+.desktop-context-bar { display: none; }
+.stat-card .value small { color: var(--muted); font-family: "DM Sans", Arial, sans-serif; font-size: 13px; font-weight: 600; }
+.stat-card .label b { color: var(--success); }
+@media (min-width: 721px) {
+  .app-shell { display: block; }
+  .sidebar { position: relative; inset: auto; width: 100%; height: 88px; padding: 13px 44px; flex-direction: row; align-items: center; gap: 26px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .brand-lockup { width: 112px; height: 62px; margin: 0 18px 0 0; }
+  .brand-lockup img { height: 62px; object-fit: contain; filter: none; }
+  .brand-lockup span, .side-section-label, .sidebar-footer, .nav-icon { display: none; }
+  .side-nav { display: flex; align-items: center; gap: 5px; }
+  .side-nav a { min-height: 44px; padding: 0 16px; border-radius: 10px; font-size: 13px; }
+  .main-shell { position: relative; width: 100%; margin-left: 0; }
+  .desktop-context-bar { height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 184px 0 44px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--paper) 70%, var(--card)); }
+  .desktop-breadcrumb { display: flex; align-items: center; gap: 18px; color: var(--muted); font-size: 12px; }
+  .desktop-breadcrumb b { color: #b8adb4; font-weight: 400; }
+  .desktop-breadcrumb strong { color: var(--ink); font-weight: 600; }
+  .desktop-theme-toggle { min-height: 38px; padding: 0 13px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--ink); box-shadow: none; font-size: 11px; }
+  .desktop-theme-toggle:hover { background: var(--pink-soft); color: var(--pink-dark); box-shadow: none; transform: none; }
+  .workspace-actions { top: 11px !important; right: 44px !important; gap: 12px !important; }
+  .content { max-width: none; padding: 30px 44px 64px; }
+  .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 20px 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+  .stat-card { min-height: 94px; padding: 4px 27px; border: 0; border-right: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+  .stat-card:last-child { border-right: 0; }
+  .stat-card .value { margin-top: 12px; font-family: "DM Sans", Arial, sans-serif; font-size: 34px; font-weight: 600; }
+  .stat-card .label { margin-top: 9px; }
+}
+@media (min-width: 721px) and (max-width: 1050px) {
+  .sidebar { width: 100%; }
+  .main-shell { width: 100%; margin-left: 0; }
+  .side-nav a { padding: 0 10px; font-size: 12px; }
+  .content { padding: 30px 28px 52px; }
+}
+@media (min-width: 721px) and (max-width: 860px) {
+  .sidebar { padding-inline: 24px; gap: 8px; }
+  .brand-lockup { width: 90px; margin-right: 6px; }
+  .side-nav { gap: 0; }
+  .side-nav a { padding-inline: 8px; font-size: 11px; }
+  .desktop-context-bar { padding-left: 28px; }
+}

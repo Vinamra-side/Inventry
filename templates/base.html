@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='23') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='24') }}">
 </head>
 <body>
   <script>
@@ -34,7 +34,7 @@
       <div class="side-section-label">Workspace</div>
       <nav class="side-nav" aria-label="Primary navigation">
         <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">
-          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Dashboard</span>
+          <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Overview</span>
         </a>
         <a href="{{ url_for('inventory') }}" class="{{ 'active' if request.endpoint in ['inventory', 'new_bean'] }}">
           <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Inventory</span>
@@ -59,6 +59,10 @@
     </aside>
 
     <div class="main-shell">
+      <div class="desktop-context-bar">
+        <div class="desktop-breadcrumb"><span>Workspace</span><b>/</b><strong>{{ self.title() }}</strong></div>
+        <button class="desktop-theme-toggle" type="button" aria-label="Toggle colour theme" data-theme-toggle><span data-theme-icon>◐</span><span data-theme-text>Dark mode</span></button>
+      </div>
       <div class="workspace-actions">
         <details class="notification-menu" data-notification-menu>
           <summary class="notification-button" aria-label="Application update notifications" aria-haspopup="true" aria-expanded="false" title="Application update notifications">
@@ -157,11 +161,10 @@
   <script>
     (function () {
       const buttons = document.querySelectorAll('[data-theme-toggle]');
-      const label = document.querySelector('[data-theme-label]');
       function update() {
         const dark = document.body.dataset.theme === 'dark';
-        label.textContent = dark ? 'Light mode' : 'Dark mode';
-        document.querySelector('.theme-toggle span').textContent = dark ? '☀' : '◐';
+        document.querySelectorAll('[data-theme-label], [data-theme-text]').forEach(function (label) { label.textContent = dark ? 'Light mode' : 'Dark mode'; });
+        document.querySelectorAll('.theme-toggle span:first-child, [data-theme-icon]').forEach(function (icon) { icon.textContent = dark ? '☀' : '◐'; });
         document.querySelector('.mobile-theme-toggle').textContent = dark ? '☀' : '◐';
       }
       buttons.forEach(function (button) { button.addEventListener('click', function () {

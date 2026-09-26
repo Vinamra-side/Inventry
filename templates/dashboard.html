@@ -4,27 +4,33 @@
 {% block content %}
   <section class="page-head dashboard-head">
     <div>
-      <div class="eyebrow">SAIKO INVENTORY</div>
-      <h1>Good day<span class="pink-dot">.</span></h1>
-      <p class="subtitle">A quick view of your stock and latest orders.</p>
+      <div class="eyebrow">SAIKO WORKSPACE</div>
+      <h1>Overview</h1>
+      <p class="subtitle">Manage stock, orders, and deliveries from one place.</p>
     </div>
+    <a class="button" href="{{ url_for('inventory') }}">Manage inventory <span>→</span></a>
   </section>
 
   <section class="stats-grid">
     <div class="stat-card">
-      <div class="stat-top"><span class="stat-icon pink">▦</span><span class="stat-caption">CATALOG</span></div>
-      <div class="value">{{ beans|length }}</div>
-      <div class="label">Bean types</div>
-    </div>
-    <div class="stat-card warning-card">
-      <div class="stat-top"><span class="stat-icon amber">!</span><span class="stat-caption">ATTENTION</span></div>
-      <div class="value">{{ low_stock_beans|length }}</div>
-      <div class="label">Low stock items</div>
+      <div class="stat-caption">TOTAL STOCK</div>
+      <div class="value">{{ "%.1f"|format(total_kg)|replace('.0', '') }} <small>kg</small></div>
+      <div class="label">{% if total_litres %}<b>{{ "%.1f"|format(total_litres)|replace('.0', '') }} L</b> decoction tracked separately{% else %}Across all kilogram products{% endif %}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-top"><span class="stat-icon green">↗</span><span class="stat-caption">ACTIVITY</span></div>
-      <div class="value">{{ recent_orders|length }}</div>
-      <div class="label">Recent orders shown</div>
+      <div class="stat-caption">ACTIVE PRODUCTS</div>
+      <div class="value">{{ beans|length }}</div>
+      <div class="label">Products in the inventory catalog</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-caption">PENDING ORDERS</div>
+      <div class="value">{{ pending_orders }}</div>
+      <div class="label">Ready for your next move</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-caption">NEEDS ATTENTION</div>
+      <div class="value">{{ low_stock_beans|length }}</div>
+      <div class="label">Products below stock threshold</div>
     </div>
   </section>
 

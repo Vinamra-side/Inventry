@@ -302,13 +302,20 @@ def register_routes(app):
     @login_required
     def dashboard():
         beans = list_beans()
-        recent_orders = list_orders(limit=10)
+        orders = list_orders(limit=200)
+        recent_orders = orders[:3]
         low_stock_beans = [b for b in beans if float(b["current_stock"]) <= float(b["low_stock_threshold"])]
+        total_kg = sum(float(b["current_stock"]) for b in beans if b["unit"] == "kg")
+        total_litres = sum(float(b["current_stock"]) for b in beans if b["unit"] == "L")
+        pending_orders = sum(1 for order in orders if order["status"] == "pending_delivery")
         return render_template(
             "dashboard.html",
             beans=beans,
             recent_orders=recent_orders,
             low_stock_beans=low_stock_beans,
+            total_kg=total_kg,
+            total_litres=total_litres,
+            pending_orders=pending_orders,
         )
 
     # ---- Beans -----------------------------------------------------

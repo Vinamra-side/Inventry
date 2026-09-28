@@ -210,6 +210,49 @@ class ZohoIntegrationTests(unittest.TestCase):
         rows = services._attach_order_items(LinesCursor(), [{"id": 42, "status": "historical"}])
         self.assertEqual(rows[0]["item_summary"], "Bean A · 2 kg, Bean B · 3 L")
 
+    def test_historical_litre_blend_uses_live_decoction_stock_for_availability(self):
+        class LinesCursor:
+            def __init__(self):
+                self.calls = []
+                self.rows = []
+
+            def execute(self, query, params):
+                sql = " ".join(query.split())
+                self.calls.append((sql, params))
+                if "FROM order_items" in sql:
+                    self.rows = [
+                        {"order_id": 42, "bean_id": None, "name": "70/30 Arabica Robusta Blend",
+                         "unit": "ltrs", "quantity": 10, "external_line": {"description": "Ready to serve"}},
+                        {"order_id": 42, "bean_id": None, "name": "Decoction",
+                         "unit": "L", "quantity": 95, "external_line": {"description": "Decoction 70/30"}},
+                    ]
+                elif "FROM beans WHERE LOWER(name)" in sql:
+                    self.rows = [{"id": 12, "name": "Decoction 70/30", "unit": "L",
+                                  "item_type": "decoction", "current_stock": 100}]
+
+            def fetchall(self):
+                return self.rows
+
+        cursor = LinesCursor()
+        rows = services._attach_order_items(cursor, [{"id": 42, "status": "historical"}])
+        self.assertEqual([item["available"] for item in rows[0]["items"]], [True, False])
+        self.assertEqual(cursor.calls[1][1], (["decoction 70/30"],))
+        self.assertFalse(any(sql.startswith("UPDATE ") or sql.startswith("INSERT ") for sql, _ in cursor.calls))
+
+    def test_historical_litre_line_without_matching_decoction_is_unknown(self):
+        class LinesCursor:
+            def execute(self, query, params):
+                self.sql = " ".join(query.split())
+
+            def fetchall(self):
+                if "FROM order_items" in self.sql:
+                    return [{"order_id": 42, "bean_id": None, "name": "70/30 Blend",
+                             "unit": "litres", "quantity": 10, "external_line": {}}]
+                return []
+
+        rows = services._attach_order_items(LinesCursor(), [{"id": 42, "status": "historical"}])
+        self.assertIsNone(rows[0]["items"][0]["available"])
+
     def test_fetches_invoice_with_refreshed_token(self):
         requests = []
 

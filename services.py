@@ -24,6 +24,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
 
 from blend_recipes import blend_components
+from catalog_mapping import decoction_catalog_name, normalized_unit
 from db import get_connection, release_connection
 
 
@@ -118,7 +119,7 @@ def _attach_order_items(cur, orders):
                COALESCE(order_items.item_name, beans.name) AS name,
                COALESCE(order_items.item_unit, beans.unit, '') AS unit,
                beans.current_stock, beans.item_type AS catalog_item_type,
-               beans.bean_type AS catalog_bean_type
+               beans.bean_type AS catalog_bean_type, order_items.external_line
         FROM order_items
         LEFT JOIN beans ON beans.id = order_items.bean_id
         WHERE order_items.order_id = ANY(%s)
@@ -138,6 +139,26 @@ def _attach_order_items(cur, orders):
     for source_name in sorted(source_names):
         cur.execute("SELECT id, name, unit, item_type, bean_type, current_stock FROM beans WHERE name = %s", (source_name,))
         source_rows[source_name] = cur.fetchone()
+    historical_names = {
+        canonical
+        for item in lines
+        if order_map[item["order_id"]]["status"] == "historical"
+        and normalized_unit(item["unit"]) == "l"
+        for canonical in [decoction_catalog_name(
+            item["name"] or "",
+            (item.get("external_line") or {}).get("description", "")
+            if isinstance(item.get("external_line"), dict) else "",
+        )]
+        if canonical
+    }
+    historical_catalog = {}
+    if historical_names:
+        cur.execute(
+            """SELECT id, name, unit, item_type, current_stock FROM beans
+               WHERE LOWER(name) = ANY(%s)""",
+            ([name.casefold() for name in sorted(historical_names)],),
+        )
+        historical_catalog = {row["name"].casefold(): row for row in cur.fetchall()}
     remaining_by_order = {}
     for item in lines:
         order = order_map[item["order_id"]]
@@ -172,6 +193,21 @@ def _attach_order_items(cur, orders):
                 if item["available"]:
                     for bean_id, amount in required.items():
                         budget[bean_id] -= amount
+        elif order["status"] == "historical" and normalized_unit(item["unit"]) == "l":
+            external_line = item.get("external_line")
+            description = external_line.get("description", "") if isinstance(external_line, dict) else ""
+            canonical = decoction_catalog_name(item["name"] or "", description)
+            catalog = historical_catalog.get(canonical.casefold()) if canonical else None
+            item["available"] = None
+            if (catalog and catalog["item_type"] == "decoction"
+                    and normalized_unit(catalog["unit"]) == "l"
+                    and catalog["current_stock"] is not None):
+                budget = remaining_by_order.setdefault(item["order_id"], {})
+                budget.setdefault(catalog["id"], Decimal(str(catalog["current_stock"])))
+                amount = Decimal(str(item["quantity"]))
+                item["available"] = budget[catalog["id"]] >= amount
+                if item["available"]:
+                    budget[catalog["id"]] -= amount
         else:
             item["available"] = None
         order["items"].append(item)

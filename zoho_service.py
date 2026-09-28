@@ -8,7 +8,6 @@ local catalog, and creates one idempotent local order.
 import json
 import math
 import os
-import re
 import secrets
 import threading
 import time
@@ -17,6 +16,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from blend_recipes import roasted_blend_catalog_name
+from catalog_mapping import decoction_catalog_name, normalized_unit
 from db import get_connection, release_connection
 from services import create_order, format_invoice_order_notes
 
@@ -81,42 +81,15 @@ def _normalize_invoice(invoice):
     return normalized
 
 
-def _normalized_unit(value):
-    unit = str(value or "").strip().casefold().rstrip(".")
-    return {
-        "kgs": "kg", "kilogram": "kg", "kilograms": "kg",
-        "l": "l", "ltr": "l", "ltrs": "l", "litre": "l", "litres": "l",
-        "liter": "l", "liters": "l",
-    }.get(unit, unit)
-
-
-def _decoction_catalog_name(name, description):
-    """Use the billed unit to select the category, and the ratio to select its SKU."""
-    ratios = set(re.findall(r"(?<!\d)(?:\d{1,3}/\d{1,3}|100%)(?!\d)", f"{name} {description}"))
-    if len(ratios) != 1:
-        return None
-    ratio = ratios.pop()
-    if ratio == "100%":
-        species = set(re.findall(r"\b(arabica|robusta)\b", f"{name} {description}", re.I))
-        if len(species) == 1:
-            return f"Decoction 100% {species.pop().title()}"
-        if species:
-            return None
-        return "Decoction 100%"
-    if ratio not in {"70/30", "80/20"}:
-        return None
-    return f"Decoction {ratio}"
-
-
 def _resolve_litre_decoction(cur, name, description, zoho_item_id):
-    canonical = _decoction_catalog_name(name, description)
+    canonical = decoction_catalog_name(name, description)
     if zoho_item_id:
         cur.execute("SELECT * FROM beans WHERE zoho_billing_item_id = %s", (zoho_item_id,))
         linked = cur.fetchone()
         # A Billing item ID can also appear on a kg line. The billed unit and
         # explicit decoction ratio take precedence; do not rebind that ID.
         if linked and not canonical and (linked.get("item_type") != "decoction" or
-                                     _normalized_unit(linked["unit"]) != "l"):
+                                     normalized_unit(linked["unit"]) != "l"):
             raise ZohoInvoiceError(
                 f"Billing item '{name or zoho_item_id}' is linked to a conflicting catalog item."
             )
@@ -143,7 +116,7 @@ def _resolve_litre_decoction(cur, name, description, zoho_item_id):
                     bean = cur.fetchone()
                     if bean:
                         break
-    if bean and (bean.get("item_type") != "decoction" or _normalized_unit(bean["unit"]) != "l"):
+    if bean and (bean.get("item_type") != "decoction" or normalized_unit(bean["unit"]) != "l"):
         raise ZohoInvoiceError(f"Catalog item '{bean['name']}' is not a decoction in litres.")
     return bean
 
@@ -306,7 +279,7 @@ def _resolve_local_items(line_items):
                 if not math.isfinite(quantity) or quantity <= 0:
                     raise ZohoInvoiceError(f"Invalid quantity for Zoho item '{name or zoho_item_id}'.")
 
-                invoice_unit = _normalized_unit(line.get("unit"))
+                invoice_unit = normalized_unit(line.get("unit"))
                 if invoice_unit == "l":
                     bean = _resolve_litre_decoction(cur, name, description, zoho_item_id)
                     if bean is None:
@@ -373,7 +346,7 @@ def _resolve_local_items(line_items):
                 if bean is None:
                     missing.append(name or zoho_item_id or "Unnamed item")
                 else:
-                    catalog_unit = _normalized_unit(bean["unit"])
+                    catalog_unit = normalized_unit(bean["unit"])
                     if invoice_unit and invoice_unit != catalog_unit:
                         raise ZohoInvoiceError(
                             f"Unit mismatch for '{name or description}': Billing uses {line['unit']}, "

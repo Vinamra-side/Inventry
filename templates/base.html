@@ -138,9 +138,6 @@
         <a href="{{ url_for('deliveries') }}">Deliveries <span>→</span></a>
         <a href="{{ url_for('insights') }}">Insights <span>→</span></a>
         <a href="{{ url_for('stock_history') }}">Stock history <span>→</span></a>
-        {% if session.get('role') == 'admin' %}
-        <a href="{{ url_for('users') }}">Message list <span>→</span></a>
-        {% endif %}
       </nav>
 
       <main class="content">
